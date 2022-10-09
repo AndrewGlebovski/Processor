@@ -12,6 +12,13 @@ int main() {
         return 1;
     }
 
+    Text text = {};
+
+    read_file(input, &text);
+
+    for(int i = 0; i < text.size; i++)
+        printf("[%.3i] %s\n", text.lines[i].len, text.lines[i].str);
+
     printf("Assembler!\n");
 
     return 0;
