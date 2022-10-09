@@ -1,5 +1,5 @@
 typedef struct {
-    const char *str = nullptr; ///< Pointer
+    char *str = nullptr; ///< Pointer
     int len = -1; ///< Length
 } String;
 

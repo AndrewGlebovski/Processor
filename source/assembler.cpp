@@ -86,6 +86,10 @@ int translate(Program *program, Text *text) {
     }
 
     for(int i = 0; (text -> lines)[i].str != nullptr && (text -> lines)[i].len != -1; i++) {
+        const char *comment  = strchr((text -> lines)[i].str, '#');
+        if (comment)
+            (text -> lines)[i].str[comment - (text -> lines)[i].str] = '\0';
+
         int n = 0;
         char cmd[10] = "";
         sscanf((text -> lines)[i].str, "%s%n", cmd, &n);
