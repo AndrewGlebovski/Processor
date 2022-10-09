@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "text.hpp"
 
 
 int main() {

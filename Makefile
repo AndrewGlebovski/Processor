@@ -16,7 +16,7 @@ all: assembler
 
 # Завершает сборку ассемблера
 assembler: $(BIN_DIR)/assembler.o
-	$(COMPILER) $^ -o asm.exe
+	$(COMPILER) $^ -o asm.exe -Llib -ltext
 
 
 # Создает правила компиляции для компиляции для всех файлов, лежащих в source
