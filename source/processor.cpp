@@ -190,6 +190,12 @@ int execute(Program *program) {
                 int val1 = 0, val2 = 0;
                 STACK_POP(&stack, &val1, program -> ip - 1);
                 STACK_POP(&stack, &val2, program -> ip - 1);
+
+                if (val1 == 0) {
+                    printf("Zero division in operation %i!\n", program -> ip - 1);
+                    return 1;
+                }
+
                 STACK_PUSH(&stack, val2 / val1, program -> ip - 1);
                 break;
             }
@@ -207,7 +213,7 @@ int execute(Program *program) {
             }
 
             default: {
-                printf("Unknown command %i!\n", (program -> code)[program -> ip]);
+                printf("Unknown command %i!\n", cmd);
                 return 1;
             }
         }
