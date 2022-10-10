@@ -6,6 +6,24 @@
 #include "command.hpp"
 
 
+#define STACK_POP(stack_ptr, value_ptr, ip) \
+do { \
+    if (stack_pop(stack_ptr, value_ptr)) { \
+        printf("Empty stack pop in operation %i!\n", ip); \
+        return 1; \
+    } \
+} while(0);
+
+
+#define STACK_PUSH(stack_ptr, value, ip) \
+do { \
+    if (stack_push(stack_ptr, value)) { \
+        printf("Stack push in operation %i!\n", ip); \
+        return 1; \
+    } \
+} while(0);
+
+
 /// Contains information about byte code to execute
 typedef struct {
     int *code = nullptr; ///< Operation code 
@@ -80,7 +98,7 @@ int execute(Program *program) {
             
             case CMD_OUT: {
                 int value = 0;
-                stack_pop(&stack, &value);
+                STACK_POP(&stack, &value, program -> ip - 1);
                 printf("%i\n", value);
                 break;
             }
@@ -90,7 +108,7 @@ int execute(Program *program) {
                 if (cmd & BIT_REG) arg += reg[(program -> code)[program -> ip++]];
                 if (cmd & BIT_MEM) arg = ram[arg];
 
-                stack_push(&stack, arg);
+                STACK_PUSH(&stack, arg, program -> ip - 1);
                 break;
             }
 
@@ -104,11 +122,11 @@ int execute(Program *program) {
                         return 1;
                     }
 
-                    stack_pop(&stack, &ram[arg]);
+                    STACK_POP(&stack, &ram[arg], program -> ip - 1);
                 }
                 else if (cmd & BIT_CONST) {
                     int value = 0;
-                    stack_pop(&stack, &value);
+                    STACK_POP(&stack, &value, program -> ip - 1);
                 }
                 else if (cmd & BIT_REG) {
                     arg = (program -> code)[program -> ip++];
@@ -118,7 +136,7 @@ int execute(Program *program) {
                         return 1;
                     }
 
-                    stack_pop(&stack, &reg[arg - 1]);
+                    STACK_POP(&stack, &reg[arg - 1], program -> ip - 1);
                 }
 
                 break;
@@ -126,41 +144,41 @@ int execute(Program *program) {
             
             case CMD_DUP: {
                 int value = 0;
-                stack_pop(&stack, &value);
-                stack_push(&stack, value);
-                stack_push(&stack, value);
+                STACK_POP(&stack, &value, program -> ip - 1);
+                STACK_PUSH(&stack, value, program -> ip - 1);
+                STACK_PUSH(&stack, value, program -> ip - 1);
                 break;
             }
 
             case CMD_ADD: {
                 int val1 = 0, val2 = 0;
-                stack_pop(&stack, &val1);
-                stack_pop(&stack, &val2);
-                stack_push(&stack, val2 + val1);
+                STACK_POP(&stack, &val1, program -> ip - 1);
+                STACK_POP(&stack, &val2, program -> ip - 1);
+                STACK_PUSH(&stack, val2 + val1, program -> ip - 1);
                 break;
             }
 
             case CMD_SUB: {
                 int val1 = 0, val2 = 0;
-                stack_pop(&stack, &val1);
-                stack_pop(&stack, &val2);
-                stack_push(&stack, val2 - val1);
+                STACK_POP(&stack, &val1, program -> ip - 1);
+                STACK_POP(&stack, &val2, program -> ip - 1);
+                STACK_PUSH(&stack, val2 - val1, program -> ip - 1);
                 break;
             }
 
             case CMD_MUL: {
                 int val1 = 0, val2 = 0;
-                stack_pop(&stack, &val1);
-                stack_pop(&stack, &val2);
-                stack_push(&stack, val2 * val1);
+                STACK_POP(&stack, &val1, program -> ip - 1);
+                STACK_POP(&stack, &val2, program -> ip - 1);
+                STACK_PUSH(&stack, val2 * val1, program -> ip - 1);
                 break;
             }
 
             case CMD_DIV: {
                 int val1 = 0, val2 = 0;
-                stack_pop(&stack, &val1);
-                stack_pop(&stack, &val2);
-                stack_push(&stack, val2 / val1);
+                STACK_POP(&stack, &val1, program -> ip - 1);
+                STACK_POP(&stack, &val2, program -> ip - 1);
+                STACK_PUSH(&stack, val2 / val1, program -> ip - 1);
                 break;
             }
 
