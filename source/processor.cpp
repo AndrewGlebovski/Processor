@@ -91,19 +91,30 @@ int execute(Program *program) {
         int cmd = (program -> code)[program -> ip++], arg = 0;
 
         switch(cmd & 0XFFFFFF) {
-            case CMD_HLT:
+            case CMD_HLT: {
                 stack_dump(&stack, 0, stdout);
                 stack_destructor(&stack);
                 return 0;
+            }
             
-            case CMD_PUSH:
+            case CMD_PUSH: {
                 if (cmd & BIT_CONST) arg = (program -> code)[program -> ip++];
                 stack_push(&stack, arg);
                 break;
+            }
+            
+            case CMD_DUP: {
+                int value = 0;
+                stack_pop(&stack, &value);
+                stack_push(&stack, value);
+                stack_push(&stack, value);
+                break;
+            }
 
-            default:
+            default: {
                 printf("Unknown command %i!\n", (program -> code)[program -> ip]);
                 return 1;
+            }
         }
     }
 
