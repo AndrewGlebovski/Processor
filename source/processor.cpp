@@ -2,6 +2,7 @@
 #include <io.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include "stack.hpp"
 
 
 /// Contains information about byte code to execute
@@ -63,6 +64,16 @@ int main() {
     close(input);
 
     print_program(&program);
+
+    Stack stack = {};
+
+    stack_constructor(&stack, 32);
+
+    stack_push(&stack, 10);
+
+    stack_dump(&stack, 0, stdout);
+
+    stack_destructor(&stack);
 
     free(program.code);
 
