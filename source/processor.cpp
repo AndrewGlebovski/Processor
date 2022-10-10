@@ -87,6 +87,8 @@ int execute(Program *program) {
     Stack stack = {};
     stack_constructor(&stack, 32);
 
+    int reg[] = {0, 0, 0, 0};
+
     while(program -> ip < program -> count) {
         int cmd = (program -> code)[program -> ip++], arg = 0;
 
@@ -106,7 +108,22 @@ int execute(Program *program) {
 
             case CMD_PUSH: {
                 if (cmd & BIT_CONST) arg = (program -> code)[program -> ip++];
+                if (cmd & BIT_REG) arg += reg[(program -> code)[program -> ip++]];
+
                 stack_push(&stack, arg);
+                break;
+            }
+
+            case CMD_POP: {
+                if (cmd & BIT_CONST) {
+                    int value = 0;
+                    stack_pop(&stack, &value);
+                }
+                else if (cmd & BIT_REG) {
+                    arg = (program -> code)[program -> ip++];
+                    stack_pop(&stack, &reg[arg]);
+                }
+
                 break;
             }
             
@@ -152,6 +169,12 @@ int execute(Program *program) {
 
             case CMD_JMP: {
                 arg = (program -> code)[program -> ip++];
+
+                if (arg == -1) {
+                    printf("Jump to -1 in operation %i!\n", program -> ip - 1);
+                    return -1;
+                }
+
                 program -> ip = arg;
                 break;
             }
