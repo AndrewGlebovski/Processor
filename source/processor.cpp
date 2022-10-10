@@ -87,7 +87,8 @@ int execute(Program *program) {
     Stack stack = {};
     stack_constructor(&stack, 32);
 
-    int reg[] = {0, 0, 0, 0};
+    int reg[4] = {};
+    int ram[100] = {};
 
     while(program -> ip < program -> count) {
         int cmd = (program -> code)[program -> ip++], arg = 0;
@@ -109,19 +110,37 @@ int execute(Program *program) {
             case CMD_PUSH: {
                 if (cmd & BIT_CONST) arg = (program -> code)[program -> ip++];
                 if (cmd & BIT_REG) arg += reg[(program -> code)[program -> ip++]];
+                if (cmd & BIT_MEM) arg = ram[arg];
 
                 stack_push(&stack, arg);
                 break;
             }
 
             case CMD_POP: {
-                if (cmd & BIT_CONST) {
+                if (cmd & BIT_MEM) {
+                    if (cmd & BIT_CONST) arg = (program -> code)[program -> ip++];
+                    if (cmd & BIT_REG) arg += reg[(program -> code)[program -> ip++]];
+
+                    if (arg < 0 || arg > 99) {
+                        printf("Segmentation fault! Wrong RAM index in operation %i!\n", program -> ip - 1);
+                        return 1;
+                    }
+
+                    stack_pop(&stack, &ram[arg]);
+                }
+                else if (cmd & BIT_CONST) {
                     int value = 0;
                     stack_pop(&stack, &value);
                 }
                 else if (cmd & BIT_REG) {
                     arg = (program -> code)[program -> ip++];
-                    stack_pop(&stack, &reg[arg]);
+
+                    if (arg < 1 || arg > 4) {
+                        printf("Segmentation fault! Wrong register index in operation %i!\n", program -> ip - 1);
+                        return 1;
+                    }
+
+                    stack_pop(&stack, &reg[arg - 1]);
                 }
 
                 break;
