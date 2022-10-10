@@ -6,6 +6,12 @@
 #include "command.hpp"
 
 
+/**
+ * \brief Shell for stack pop that throws error
+ * \param [in]  stack_ptr Pointer to stack
+ * \param [out] value_ptr Pointer to value for stack pop
+ * \param [in]  ip Current instruction pointer
+*/
 #define STACK_POP(stack_ptr, value_ptr, ip) \
 do { \
     if (stack_pop(stack_ptr, value_ptr)) { \
@@ -15,6 +21,12 @@ do { \
 } while(0);
 
 
+/**
+ * \brief Shell for stack push that throws error
+ * \param [in]  stack_ptr Pointer to stack
+ * \param [out] value Value for stack push
+ * \param [in]  ip Current instruction pointer
+*/
 #define STACK_PUSH(stack_ptr, value, ip) \
 do { \
     if (stack_push(stack_ptr, value)) { \
