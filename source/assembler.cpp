@@ -10,7 +10,7 @@
 #define SET_OPERATION(CMD) \
 do { \
     (program -> code)[program -> ip++] = CMD; \
-    fprintf(listing, "%.4i %.8X           %s\n", program -> ip - 1, CMD, (text -> lines)[i].str); \
+    fprintf(listing, "%.4i %.8X             %s\n", program -> ip - 1, CMD, (text -> lines)[i].str); \
 } while(0) \
 
 
@@ -19,7 +19,7 @@ do { \
 do { \
     (program -> code)[program -> ip++] = CMD; \
     (program -> code)[program -> ip++] = ARG; \
-    fprintf(listing, "%.4i %.8X %.4i      %s\n", program -> ip - 2, CMD, ARG, (text -> lines)[i].str); \
+    fprintf(listing, "%.4i %.8X % .4i       %s\n", program -> ip - 2, CMD, ARG, (text -> lines)[i].str); \
 } while(0) \
 
 
@@ -29,7 +29,7 @@ do { \
     (program -> code)[program -> ip++] = CMD; \
     (program -> code)[program -> ip++] = ARG1; \
     (program -> code)[program -> ip++] = ARG2; \
-    fprintf(listing, "%.4i %.8X %.4i %.4i %s\n", program -> ip - 3, CMD, ARG1, ARG2, (text -> lines)[i].str); \
+    fprintf(listing, "%.4i %.8X % .4i % .4i %s\n", program -> ip - 3, CMD, ARG1, ARG2, (text -> lines)[i].str); \
 } while(0) \
 
 
@@ -85,6 +85,15 @@ int translate(Program *program, Text *text, FILE *listing);
 
 
 /**
+ * \brief Write binary output to file
+ * \param [out] file Output file
+ * \param [in]  program Program to write
+ * \return Non zero value means error
+*/
+int write_file(int file, Program *program);
+
+
+/**
  * \brief Inserts label if it does not exist
  * \param [in] program Program to insert label
  * \param [in] new_label This label will be inserted
@@ -130,6 +139,8 @@ int main() {
     Text text = {};
 
     read_file(input, &text);
+
+    close(input);
     /*
     for(int i = 0; i < text.size; i++)
         printf("[%.3i] %s\n", text.lines[i].len, text.lines[i].str);
@@ -149,7 +160,18 @@ int main() {
     if (translate(&program, &text, listing))
         return 1;
 
-    print_program(&program);
+    //print_program(&program);
+
+    int output = open("debug/binary.txt", O_WRONLY | O_CREAT | O_BINARY);
+
+    if (output == -1) {
+        printf("Couldn't open file!\n");
+        return 1;
+    }
+
+    write_file(output, &program);
+
+    close(output);
 
     free_program(&program);
     free_text(&text);
@@ -165,6 +187,8 @@ int translate(Program *program, Text *text, FILE *listing) {
         printf("No listing file provided!\n");
         return 1;
     }
+
+    fprintf(listing, "IP   COMMAND  ARG 1 ARG 2 NAME\n");
 
     program -> ip = 0;
 
@@ -202,7 +226,7 @@ int translate(Program *program, Text *text, FILE *listing) {
 
             if (strchr(arg, '[')) {
                 if (!strchr(arg, ']')) {
-                    printf("No closing bracker after push in line %i!\n", i + 1);
+                    printf("No closing bracket after push in line %i!\n", i + 1);
                     return 1;
                 }
 
@@ -232,7 +256,7 @@ int translate(Program *program, Text *text, FILE *listing) {
 
             if (strchr(arg, '[')) {
                 if (!strchr(arg, ']')) {
-                    printf("No closing bracker after push in line %i!\n", i + 1);
+                    printf("No closing bracket after pop in line %i!\n", i + 1);
                     return 1;
                 }
 
@@ -302,6 +326,30 @@ int translate(Program *program, Text *text, FILE *listing) {
 }
 
 
+int write_file(int file, Program *program) {
+    if (file == -1) {
+        printf("Invalid file!\n");
+        return 1;
+    }
+
+    if (!program) {
+        printf("Can't work with then null pointer!\n");
+        return 1;
+    }
+
+    int b = write(file, &(program -> count), sizeof(int));
+
+    b += write(file, program -> code, (unsigned int) program -> count * sizeof(int));
+
+    if (b != (program -> count + 1) * (int) sizeof(int)) {
+        printf("Expected bytes %i, actualy written %i", b, (program -> count + 1) * (int) sizeof(int));
+        return 1;
+    }
+
+    return 0;
+}
+
+
 void insert_label(Program *program, Label *new_label) {
     for(int i = 0; i < program -> labels_count; i++) {
         if (strcmp((program -> labels)[i].name, new_label -> name) == 0)
@@ -337,6 +385,7 @@ int free_program(Program *program) {
 
     program -> count = 0;
     program -> ip = 0;
+    program -> labels_count = 0;
 
     return  0;
 }
