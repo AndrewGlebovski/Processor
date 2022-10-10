@@ -33,3 +33,6 @@
 
 # Debug
 /debug
+
+# VS Code
+/vscode

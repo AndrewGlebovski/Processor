@@ -11,12 +11,17 @@ BIN_DIR=binary
 SRC_DIR=source
 
 
-all: assembler
+all: processor
 
 
 # Завершает сборку ассемблера
 assembler: $(BIN_DIR)/assembler.o
 	$(COMPILER) $^ -o asm.exe -Llib -ltext
+
+
+# Завершает сборку процессора
+processor: $(BIN_DIR)/processor.o
+	$(COMPILER) $^ -o cpu.exe
 
 
 # Создает правила компиляции для компиляции для всех файлов, лежащих в source
