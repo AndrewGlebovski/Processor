@@ -215,7 +215,7 @@ int translate(Program *program, Text *text, FILE *listing) {
 
                 SET_OPERATION_AND_ARGS(cmd_code | (BIT_CONST | BIT_REG), value, (arg + n + 1)[1] - 'A' + 1);
             }
-            else if (atoi(arg) != 0) {
+            else if (value != 0) {
                 SET_OPERATION_AND_ARG(cmd_code | BIT_CONST, value);
             }
             else if  (strlen(arg) == 3 && arg[0] == 'R'&& arg[2] == 'X') {
@@ -227,7 +227,34 @@ int translate(Program *program, Text *text, FILE *listing) {
             }
         }
         else if (strcmp(cmd, "pop") == 0) {
-            SET_OPERATION(CMD_POP);
+            char *arg = (text -> lines)[i].str + n + 1;
+            int value = atoi(arg), cmd_code = CMD_POP;
+
+            if (strchr(arg, '[')) {
+                if (!strchr(arg, ']')) {
+                    printf("No closing bracker after push in line %i!\n", i + 1);
+                    return 1;
+                }
+
+                arg = strchr(arg, '[') + 1;
+                cmd_code |= BIT_MEM;
+            }
+
+            if (strchr(arg, '+')) {
+                sscanf(arg, "%i%n", &value, &n);
+
+                SET_OPERATION_AND_ARGS(cmd_code | (BIT_CONST | BIT_REG), value, (arg + n + 1)[1] - 'A' + 1);
+            }
+            else if (value != 0) {
+                SET_OPERATION_AND_ARG(cmd_code | BIT_CONST, value);
+            }
+            else if  (strlen(arg) == 3 && arg[0] == 'R'&& arg[2] == 'X') {
+                SET_OPERATION_AND_ARG(cmd_code | BIT_REG, arg[1] - 'A' + 1);
+            }
+            else {
+                printf("Wrong argument to pop %s in line %i!\n", arg, i + 1);
+                return 1;
+            }
         }
         else if (strcmp(cmd, "out") == 0) {
             SET_OPERATION(CMD_OUT);
