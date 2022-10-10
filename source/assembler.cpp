@@ -10,7 +10,7 @@
 #define SET_OPERATION(CMD) \
 do { \
     (program -> code)[program -> ip++] = CMD; \
-    fprintf(listing, "%.4i %.4i      %s\n", program -> ip - 1, CMD, (text -> lines)[i].str); \
+    fprintf(listing, "%.4i %.8X      %s\n", program -> ip - 1, CMD, (text -> lines)[i].str); \
 } while(0) \
 
 
@@ -19,7 +19,7 @@ do { \
 do { \
     (program -> code)[program -> ip++] = CMD; \
     (program -> code)[program -> ip++] = ARG; \
-    fprintf(listing, "%.4i %.4i %.4i %s\n", program -> ip - 2, CMD, ARG, (text -> lines)[i].str); \
+    fprintf(listing, "%.4i %.8X %.4i %s\n", program -> ip - 2, CMD, ARG, (text -> lines)[i].str); \
 } while(0) \
 
 
@@ -174,12 +174,14 @@ int translate(Program *program, Text *text, FILE *listing) {
             break;
         }
         else if (strcmp(cmd, "push") == 0) {
-            int value = 0;
-            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
-                printf("Wrong argument to push at line %i!\n", i);
-                return 1;
+            char *arg = (text -> lines)[i].str + n + 1;
+            int value = atoi(arg);
+
+            if (atoi(arg) != 0) {
+                int cmd_code = CMD_PUSH | 0x1000000;
+
+                SET_OPERATION_AND_ARG(cmd_code, value);
             }
-            SET_OPERATION_AND_ARG(CMD_PUSH, value);
         }
         else if (strcmp(cmd, "out") == 0) {
             SET_OPERATION(CMD_OUT);
