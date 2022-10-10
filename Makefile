@@ -25,5 +25,5 @@ processor: $(BIN_DIR)/processor.o
 
 
 # Создает правила компиляции для компиляции для всех файлов, лежащих в source
-$(BIN_DIR)/%.o: $(SRC_DIR)/%.cpp
+$(BIN_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_DIR)/command.cpp
 	$(COMPILER) $(FLAGS) -c $< -o $@
