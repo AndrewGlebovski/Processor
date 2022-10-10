@@ -141,10 +141,12 @@ int main() {
     FILE *listing = fopen("debug/listing.txt", "w");
 
     fprintf(listing, "First pass\n");
-    translate(&program, &text, listing);
+    if (translate(&program, &text, listing))
+        return 1;
 
     fprintf(listing, "\nSecond pass\n");
-    translate(&program, &text, listing);
+    if (translate(&program, &text, listing))
+        return 1;
 
     print_program(&program);
 
@@ -162,6 +164,8 @@ int translate(Program *program, Text *text, FILE *listing) {
         printf("No listing file provided!\n");
         return 1;
     }
+
+    program -> ip = 0;
 
     for(int i = 0; (text -> lines)[i].str != nullptr && (text -> lines)[i].len != -1; i++) {
         /*
@@ -193,22 +197,32 @@ int translate(Program *program, Text *text, FILE *listing) {
         }
         else if (strcmp(cmd, "push") == 0) {
             char *arg = (text -> lines)[i].str + n + 1;
-            int value = atoi(arg);
+            int value = atoi(arg), cmd_code = CMD_PUSH;
+
+            if (strchr(arg, '[')) {
+                if (!strchr(arg, ']')) {
+                    printf("No closing bracker after push in line %i!\n", i + 1);
+                    return 1;
+                }
+
+                arg = strchr(arg, '[') + 1;
+                cmd_code |= BIT_MEM;
+            }
 
             if (strchr(arg, '+')) {
                 sscanf(arg, "%i%n", &value, &n);
 
-                SET_OPERATION_AND_ARGS(CMD_PUSH | (BIT_CONST | BIT_REG), value, (arg + n + 1)[1] - 'A' + 1);
+                SET_OPERATION_AND_ARGS(cmd_code | (BIT_CONST | BIT_REG), value, (arg + n + 1)[1] - 'A' + 1);
             }
             else if (atoi(arg) != 0) {
-                SET_OPERATION_AND_ARG(CMD_PUSH | BIT_CONST, value);
+                SET_OPERATION_AND_ARG(cmd_code | BIT_CONST, value);
             }
             else if  (strlen(arg) == 3 && arg[0] == 'R'&& arg[2] == 'X') {
-                SET_OPERATION_AND_ARG(CMD_PUSH | BIT_REG, arg[1] - 'A' + 1);
+                SET_OPERATION_AND_ARG(cmd_code | BIT_REG, arg[1] - 'A' + 1);
             }
             else {
-                printf("Wrong argument to push %s!\n", arg);
-                return -1;
+                printf("Wrong argument to push %s in line %i!\n", arg, i + 1);
+                return 1;
             }
         }
         else if (strcmp(cmd, "out") == 0) {
@@ -229,7 +243,7 @@ int translate(Program *program, Text *text, FILE *listing) {
         else if (strcmp(cmd, "jmp") == 0) {
             int value = 0;
             if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
-                printf("Wrong argument to jmp at line %i!\n", i);
+                printf("Wrong argument to jmp at line %i!\n", i + 1);
                 return 1;
             }
             SET_OPERATION_AND_ARG(CMD_JMP, value);
@@ -238,13 +252,12 @@ int translate(Program *program, Text *text, FILE *listing) {
             SET_OPERATION(CMD_DUP);
         }
         else {
-            printf("Unknown command %s\n", cmd);
+            printf("Unknown command %s in line %i\n", cmd, i);
             return 1;
         }
     }
 
     program -> count = program -> ip;
-    program -> ip = 0;
 
     program -> code = (int *) realloc(program -> code, program -> count * sizeof(int));
     program -> labels = (Label *) realloc(program -> labels, program -> labels_count * sizeof(Label));
