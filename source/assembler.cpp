@@ -231,6 +231,7 @@ int translate(Program *program, Text *text, FILE *listing) {
                 }
 
                 arg = strchr(arg, '[') + 1;
+                sscanf(arg, "%i", &value);
                 cmd_code |= BIT_MEM;
             }
 
@@ -261,6 +262,7 @@ int translate(Program *program, Text *text, FILE *listing) {
                 }
 
                 arg = strchr(arg, '[') + 1;
+                sscanf(arg, "%i", &value);
                 cmd_code |= BIT_MEM;
             }
 
