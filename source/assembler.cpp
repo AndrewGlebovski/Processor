@@ -182,6 +182,15 @@ int translate(Program *program, Text *text, FILE *listing) {
 
                 SET_OPERATION_AND_ARG(cmd_code, value);
             }
+            else if  (strlen(arg) == 3 && arg[0] == 'R'&& arg[2] == 'X') {
+                int cmd_code = CMD_PUSH | 0x2000000;
+
+                SET_OPERATION_AND_ARG(cmd_code, arg[1] - 'A' + 1);
+            }
+            else {
+                printf("Wrong argument to push %s!\n", arg);
+                return -1;
+            }
         }
         else if (strcmp(cmd, "out") == 0) {
             SET_OPERATION(CMD_OUT);
