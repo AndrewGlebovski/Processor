@@ -150,6 +150,12 @@ int execute(Program *program) {
                 break;
             }
 
+            case CMD_JMP: {
+                arg = (program -> code)[program -> ip++];
+                program -> ip = arg;
+                break;
+            }
+
             default: {
                 printf("Unknown command %i!\n", (program -> code)[program -> ip]);
                 return 1;
