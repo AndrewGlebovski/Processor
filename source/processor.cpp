@@ -88,16 +88,26 @@ int execute(Program *program) {
     stack_constructor(&stack, 32);
 
     while(program -> ip < program -> count) {
-        switch((program -> code)[program -> ip]) {
+        int cmd = (program -> code)[program -> ip++], arg = 0;
+
+        switch(cmd & 0XFFFFFF) {
             case CMD_HLT:
+                stack_dump(&stack, 0, stdout);
                 stack_destructor(&stack);
                 return 0;
             
+            case CMD_PUSH:
+                if (cmd & BIT_CONST) arg = (program -> code)[program -> ip++];
+                stack_push(&stack, arg);
+                break;
+
             default:
                 printf("Unknown command %i!\n", (program -> code)[program -> ip]);
                 return 1;
         }
     }
+
+    stack_destructor(&stack);
 
     printf("[Warning] No hlt at end of the program!\n");
     return 1;
