@@ -41,7 +41,7 @@ typedef enum {
  * \param [out] program This struct will be filled with information
  * \param [in]  text Text to analyze
  * \return Non zero value means error
- * \note Don't forget to free code before and after using translate
+ * \note Don't forget to allocate code and labels before and free code and labels after using translate
 */
 int translate(Program *program, Text *text);
 
@@ -98,6 +98,10 @@ int main() {
     */
     Program program = {};
     
+    program.code = (int *) calloc(text.size * 2, sizeof(int));
+    program.labels = (Label *) calloc(text.size, sizeof(Label));
+
+    translate(&program, &text);
     translate(&program, &text);
 
     print_program(&program);
@@ -112,9 +116,6 @@ int main() {
 
 
 int translate(Program *program, Text *text) {
-    program -> code = (int *) calloc(text -> size * 2, sizeof(int));
-    program -> labels = (Label *) calloc(text -> size, sizeof(Label));
-
     if (!program -> code) {
         printf("Failed to allocate memory!\n");
         return 1;
@@ -127,17 +128,23 @@ int translate(Program *program, Text *text) {
             (text -> lines)[i].str[comment - (text -> lines)[i].str] = '\0';
         */
 
-        if (strchr((text -> lines)[i].str, ':')) {
-            (text -> lines)[i].str[strchr((text -> lines)[i].str, ':') - (text -> lines)[i].str] = '\0';
-
-            Label new_label = {program -> ip, (text -> lines)[i].str};
-            insert_label(program, &new_label);
-            continue;
-        }
-
         int n = 0;
         char cmd[10] = "";
         sscanf((text -> lines)[i].str, "%s%n", cmd, &n);
+
+        if (strchr((text -> lines)[i].str, ':')) {
+            if (strcmp(cmd, "jmp") == 0) {
+                (program -> code)[program -> ip++] = CMD_JMP;
+                (program -> code)[program -> ip++] = get_label_value(program, (text -> lines)[i].str + n + 1);
+            }
+            
+            else {
+                Label new_label = {program -> ip, (text -> lines)[i].str};
+                insert_label(program, &new_label);
+            }
+            
+            continue;
+        }
 
         if (strcmp(cmd, "hlt") == 0) {
             (program -> code)[program -> ip++] = CMD_HLT;
@@ -169,8 +176,14 @@ int translate(Program *program, Text *text) {
             (program -> code)[program -> ip++] = CMD_DIV;
         }
         else if (strcmp(cmd, "jmp") == 0) {
+            int value = 0;
+            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
+                printf("Wrong argument to jmp at line %i!\n", i);
+                return 1;
+            }
+
             (program -> code)[program -> ip++] = CMD_JMP;
-            (program -> code)[program -> ip++] = get_label_value(program, (text -> lines)[i].str + n + 1);
+            (program -> code)[program -> ip++] = value;
         }
         else {
             printf("Unknown command %s\n", cmd);
