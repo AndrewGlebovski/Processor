@@ -61,6 +61,7 @@ typedef enum {
     CMD_DIV  = 6, ///< Divide two numbers
     CMD_JMP  = 7, ///< Jump to the specific line of code
     CMD_DUP  = 8, ///< Duplicates last number
+    CMD_POP  = 9, ///< Pop into register or memory
 } COMMANDS;
 
 
@@ -224,6 +225,9 @@ int translate(Program *program, Text *text, FILE *listing) {
                 printf("Wrong argument to push %s in line %i!\n", arg, i + 1);
                 return 1;
             }
+        }
+        else if (strcmp(cmd, "pop") == 0) {
+            SET_OPERATION(CMD_POP);
         }
         else if (strcmp(cmd, "out") == 0) {
             SET_OPERATION(CMD_OUT);
