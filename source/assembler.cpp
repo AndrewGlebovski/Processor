@@ -6,6 +6,23 @@
 #include "text.hpp"
 
 
+/// Sets operation code and prints that to the listing file
+#define SET_OPERATION(CMD) \
+do { \
+    (program -> code)[program -> ip++] = CMD; \
+    fprintf(listing, "%.4i %.4i      %s\n", program -> ip - 1, CMD, (text -> lines)[i].str); \
+} while(0) \
+
+
+/// Sets operation code and arg and prints that to the listing file
+#define SET_OPERATION_AND_ARG(CMD, ARG) \
+do { \
+    (program -> code)[program -> ip++] = CMD; \
+    (program -> code)[program -> ip++] = ARG; \
+    fprintf(listing, "%.4i %.4i %.4i %s\n", program -> ip - 2, CMD, ARG, (text -> lines)[i].str); \
+} while(0) \
+
+
 /// Contains information about label
 typedef struct {
     int value = 0;
@@ -41,10 +58,11 @@ typedef enum {
  * \brief Translate text from file to actual code
  * \param [out] program This struct will be filled with information
  * \param [in]  text Text to analyze
+ * \param [in]  listing File for listing
  * \return Non zero value means error
  * \note Don't forget to allocate code and labels before and free code and labels after using translate
 */
-int translate(Program *program, Text *text);
+int translate(Program *program, Text *text, FILE *listing);
 
 
 /**
@@ -102,8 +120,13 @@ int main() {
     program.code = (int *) calloc(text.size * 2, sizeof(int));
     program.labels = (Label *) calloc(text.size, sizeof(Label));
 
-    translate(&program, &text);
-    translate(&program, &text);
+    FILE *listing = fopen("debug/listing.txt", "w");
+
+    fprintf(listing, "First pass\n");
+    translate(&program, &text, listing);
+
+    fprintf(listing, "\nSecond pass\n");
+    translate(&program, &text, listing);
 
     print_program(&program);
 
@@ -116,9 +139,9 @@ int main() {
 }
 
 
-int translate(Program *program, Text *text) {
-    if (!program -> code) {
-        printf("Failed to allocate memory!\n");
+int translate(Program *program, Text *text, FILE *listing) {
+    if (!listing) {
+        printf("No listing file provided!\n");
         return 1;
     }
 
@@ -135,8 +158,7 @@ int translate(Program *program, Text *text) {
 
         if (strchr((text -> lines)[i].str, ':')) {
             if (strcmp(cmd, "jmp") == 0) {
-                (program -> code)[program -> ip++] = CMD_JMP;
-                (program -> code)[program -> ip++] = get_label_value(program, (text -> lines)[i].str + n + 1);
+                SET_OPERATION_AND_ARG(CMD_JMP, get_label_value(program, (text -> lines)[i].str + n + 1));
             }
 
             else {
@@ -157,24 +179,22 @@ int translate(Program *program, Text *text) {
                 printf("Wrong argument to push at line %i!\n", i);
                 return 1;
             }
-
-            (program -> code)[program -> ip++] = CMD_PUSH;
-            (program -> code)[program -> ip++] = value;
+            SET_OPERATION_AND_ARG(CMD_PUSH, value);
         }
         else if (strcmp(cmd, "out") == 0) {
-            (program -> code)[program -> ip++] = CMD_OUT;
+            SET_OPERATION(CMD_OUT);
         }
         else if (strcmp(cmd, "add") == 0) {
-            (program -> code)[program -> ip++] = CMD_ADD;
+            SET_OPERATION(CMD_ADD);
         }
         else if (strcmp(cmd, "sub") == 0) {
-            (program -> code)[program -> ip++] = CMD_SUB;
+            SET_OPERATION(CMD_SUB);
         }
         else if (strcmp(cmd, "mul") == 0) {
-            (program -> code)[program -> ip++] = CMD_MUL;
+            SET_OPERATION(CMD_MUL);
         }
         else if (strcmp(cmd, "div") == 0) {
-            (program -> code)[program -> ip++] = CMD_DIV;
+            SET_OPERATION(CMD_DIV);
         }
         else if (strcmp(cmd, "jmp") == 0) {
             int value = 0;
@@ -182,12 +202,10 @@ int translate(Program *program, Text *text) {
                 printf("Wrong argument to jmp at line %i!\n", i);
                 return 1;
             }
-
-            (program -> code)[program -> ip++] = CMD_JMP;
-            (program -> code)[program -> ip++] = value;
+            SET_OPERATION_AND_ARG(CMD_JMP, value);
         }
         else if (strcmp(cmd, "dup") == 0) {
-            (program -> code)[program -> ip++] = CMD_DUP;
+            SET_OPERATION(CMD_DUP);
         }
         else {
             printf("Unknown command %s\n", cmd);
