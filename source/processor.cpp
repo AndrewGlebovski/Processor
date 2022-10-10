@@ -111,6 +111,38 @@ int execute(Program *program) {
                 break;
             }
 
+            case CMD_ADD: {
+                int val1 = 0, val2 = 0;
+                stack_pop(&stack, &val1);
+                stack_pop(&stack, &val2);
+                stack_push(&stack, val2 + val1);
+                break;
+            }
+
+            case CMD_SUB: {
+                int val1 = 0, val2 = 0;
+                stack_pop(&stack, &val1);
+                stack_pop(&stack, &val2);
+                stack_push(&stack, val2 - val1);
+                break;
+            }
+
+            case CMD_MUL: {
+                int val1 = 0, val2 = 0;
+                stack_pop(&stack, &val1);
+                stack_pop(&stack, &val2);
+                stack_push(&stack, val2 * val1);
+                break;
+            }
+
+            case CMD_DIV: {
+                int val1 = 0, val2 = 0;
+                stack_pop(&stack, &val1);
+                stack_pop(&stack, &val2);
+                stack_push(&stack, val2 / val1);
+                break;
+            }
+
             default: {
                 printf("Unknown command %i!\n", (program -> code)[program -> ip]);
                 return 1;
