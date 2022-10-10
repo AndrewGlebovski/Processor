@@ -33,6 +33,7 @@ typedef enum {
     CMD_MUL  = 5, ///< Multiply two numbers
     CMD_DIV  = 6, ///< Divide two numbers
     CMD_JMP  = 7, ///< Jump to the specific line of code
+    CMD_DUP  = 8, ///< Duplicates last number
 } COMMANDS;
 
 
@@ -137,7 +138,7 @@ int translate(Program *program, Text *text) {
                 (program -> code)[program -> ip++] = CMD_JMP;
                 (program -> code)[program -> ip++] = get_label_value(program, (text -> lines)[i].str + n + 1);
             }
-            
+
             else {
                 Label new_label = {program -> ip, (text -> lines)[i].str};
                 insert_label(program, &new_label);
@@ -184,6 +185,9 @@ int translate(Program *program, Text *text) {
 
             (program -> code)[program -> ip++] = CMD_JMP;
             (program -> code)[program -> ip++] = value;
+        }
+        else if (strcmp(cmd, "dup") == 0) {
+            (program -> code)[program -> ip++] = CMD_DUP;
         }
         else {
             printf("Unknown command %s\n", cmd);
