@@ -315,7 +315,9 @@ int translate(Program *program, Text *text, FILE *listing) {
     program -> count = program -> ip;
 
     program -> code = (int *) realloc(program -> code, program -> count * sizeof(int));
-    program -> labels = (Label *) realloc(program -> labels, program -> labels_count * sizeof(Label));
+    
+    if (program -> labels_count)
+        program -> labels = (Label *) realloc(program -> labels, program -> labels_count * sizeof(Label));
 
     if (!program -> code || !program -> labels) {
         printf("Failed to reallocate memory!\n");

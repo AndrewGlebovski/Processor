@@ -46,6 +46,14 @@ int read_file(int file, Program *program);
 
 
 /**
+ * \brief Executes program
+ * \param program Program to execute
+ * \return Non zero value means error
+*/
+int execute(Program *program);
+
+
+/**
  * \brief Prints all information about program
  * \param [in] program Program to print
 */
@@ -65,21 +73,34 @@ int main() {
 
     print_program(&program);
 
-    Stack stack = {};
-
-    stack_constructor(&stack, 32);
-
-    stack_push(&stack, 10);
-
-    stack_dump(&stack, 0, stdout);
-
-    stack_destructor(&stack);
+    execute(&program);
 
     free(program.code);
 
     printf("Processor!");
 
     return 0;
+}
+
+
+int execute(Program *program) {
+    Stack stack = {};
+    stack_constructor(&stack, 32);
+
+    while(program -> ip < program -> count) {
+        switch((program -> code)[program -> ip]) {
+            case CMD_HLT:
+                stack_destructor(&stack);
+                return 0;
+            
+            default:
+                printf("Unknown command %i!\n", (program -> code)[program -> ip]);
+                return 1;
+        }
+    }
+
+    printf("[Warning] No hlt at end of the program!\n");
+    return 1;
 }
 
 
