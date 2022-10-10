@@ -10,7 +10,7 @@
 #define SET_OPERATION(CMD) \
 do { \
     (program -> code)[program -> ip++] = CMD; \
-    fprintf(listing, "%.4i %.8X      %s\n", program -> ip - 1, CMD, (text -> lines)[i].str); \
+    fprintf(listing, "%.4i %.8X           %s\n", program -> ip - 1, CMD, (text -> lines)[i].str); \
 } while(0) \
 
 
@@ -19,7 +19,17 @@ do { \
 do { \
     (program -> code)[program -> ip++] = CMD; \
     (program -> code)[program -> ip++] = ARG; \
-    fprintf(listing, "%.4i %.8X %.4i %s\n", program -> ip - 2, CMD, ARG, (text -> lines)[i].str); \
+    fprintf(listing, "%.4i %.8X %.4i      %s\n", program -> ip - 2, CMD, ARG, (text -> lines)[i].str); \
+} while(0) \
+
+
+/// Sets operation code and args and prints that to the listing file
+#define SET_OPERATION_AND_ARGS(CMD, ARG1, ARG2) \
+do { \
+    (program -> code)[program -> ip++] = CMD; \
+    (program -> code)[program -> ip++] = ARG1; \
+    (program -> code)[program -> ip++] = ARG2; \
+    fprintf(listing, "%.4i %.8X %.4i %.4i %s\n", program -> ip - 3, CMD, ARG1, ARG2, (text -> lines)[i].str); \
 } while(0) \
 
 
@@ -52,6 +62,14 @@ typedef enum {
     CMD_JMP  = 7, ///< Jump to the specific line of code
     CMD_DUP  = 8, ///< Duplicates last number
 } COMMANDS;
+
+
+/// Argument type bit
+typedef enum {
+    BIT_CONST = 0x1000000, ///< Constant bit
+    BIT_REG   = 0x2000000, ///< Register bit
+    BIT_MEM   = 0x4000000, ///< Memory bit
+} ARG_TYPE;
 
 
 /**
@@ -117,7 +135,7 @@ int main() {
     */
     Program program = {};
     
-    program.code = (int *) calloc(text.size * 2, sizeof(int));
+    program.code = (int *) calloc(text.size * 3, sizeof(int));
     program.labels = (Label *) calloc(text.size, sizeof(Label));
 
     FILE *listing = fopen("debug/listing.txt", "w");
@@ -177,15 +195,16 @@ int translate(Program *program, Text *text, FILE *listing) {
             char *arg = (text -> lines)[i].str + n + 1;
             int value = atoi(arg);
 
-            if (atoi(arg) != 0) {
-                int cmd_code = CMD_PUSH | 0x1000000;
+            if (strchr(arg, '+')) {
+                sscanf(arg, "%i%n", &value, &n);
 
-                SET_OPERATION_AND_ARG(cmd_code, value);
+                SET_OPERATION_AND_ARGS(CMD_PUSH | (BIT_CONST | BIT_REG), value, (arg + n + 1)[1] - 'A' + 1);
+            }
+            else if (atoi(arg) != 0) {
+                SET_OPERATION_AND_ARG(CMD_PUSH | BIT_CONST, value);
             }
             else if  (strlen(arg) == 3 && arg[0] == 'R'&& arg[2] == 'X') {
-                int cmd_code = CMD_PUSH | 0x2000000;
-
-                SET_OPERATION_AND_ARG(cmd_code, arg[1] - 'A' + 1);
+                SET_OPERATION_AND_ARG(CMD_PUSH | BIT_REG, arg[1] - 'A' + 1);
             }
             else {
                 printf("Wrong argument to push %s!\n", arg);
