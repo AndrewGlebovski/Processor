@@ -97,6 +97,13 @@ int execute(Program *program) {
                 return 0;
             }
             
+            case CMD_OUT: {
+                int value = 0;
+                stack_pop(&stack, &value);
+                printf("%i\n", value);
+                break;
+            }
+
             case CMD_PUSH: {
                 if (cmd & BIT_CONST) arg = (program -> code)[program -> ip++];
                 stack_push(&stack, arg);
