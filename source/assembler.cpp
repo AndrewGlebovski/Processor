@@ -263,6 +263,18 @@ int translate(Program *program, Text *text, FILE *listing) {
         else if (strcmp(cmd, "out") == 0) {
             SET_OPERATION(CMD_OUT);
         }
+        else if (strcmp(cmd, "jb") == 0) {
+            SET_OPERATION(CMD_JB);
+        }
+        else if (strcmp(cmd, "ja") == 0) {
+            SET_OPERATION(CMD_JA);
+        }
+        else if (strcmp(cmd, "je") == 0) {
+            SET_OPERATION(CMD_JE);
+        }
+        else if (strcmp(cmd, "jne") == 0) {
+            SET_OPERATION(CMD_JNE);
+        }
         else if (strcmp(cmd, "add") == 0) {
             SET_OPERATION(CMD_ADD);
         }

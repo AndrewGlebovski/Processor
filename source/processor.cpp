@@ -110,7 +110,7 @@ int execute(Program *program) {
             
             case CMD_OUT: {
                 int value = 0;
-                STACK_POP(&stack, &value, program -> ip - 1);
+                STACK_POP(&stack, &value, program -> ip);
                 printf("%i\n", value);
                 break;
             }
@@ -120,7 +120,7 @@ int execute(Program *program) {
                 if (cmd & BIT_REG) arg += reg[(program -> code)[program -> ip++]];
                 if (cmd & BIT_MEM) arg = ram[arg];
 
-                STACK_PUSH(&stack, arg, program -> ip - 1);
+                STACK_PUSH(&stack, arg, program -> ip);
                 break;
             }
 
@@ -130,25 +130,25 @@ int execute(Program *program) {
                     if (cmd & BIT_REG) arg += reg[(program -> code)[program -> ip++]];
 
                     if (arg < 0 || arg > 99) {
-                        printf("Segmentation fault! Wrong RAM index in operation %i!\n", program -> ip - 1);
+                        printf("Segmentation fault! Wrong RAM index in operation %i!\n", program -> ip);
                         return 1;
                     }
 
-                    STACK_POP(&stack, &ram[arg], program -> ip - 1);
+                    STACK_POP(&stack, &ram[arg], program -> ip);
                 }
                 else if (cmd & BIT_CONST) {
                     int value = 0;
-                    STACK_POP(&stack, &value, program -> ip - 1);
+                    STACK_POP(&stack, &value, program -> ip);
                 }
                 else if (cmd & BIT_REG) {
                     arg = (program -> code)[program -> ip++];
 
                     if (arg < 1 || arg > 4) {
-                        printf("Segmentation fault! Wrong register index in operation %i!\n", program -> ip - 1);
+                        printf("Segmentation fault! Wrong register index in operation %i!\n", program -> ip);
                         return 1;
                     }
 
-                    STACK_POP(&stack, &reg[arg - 1], program -> ip - 1);
+                    STACK_POP(&stack, &reg[arg - 1], program -> ip);
                 }
 
                 break;
@@ -156,47 +156,47 @@ int execute(Program *program) {
             
             case CMD_DUP: {
                 int value = 0;
-                STACK_POP(&stack, &value, program -> ip - 1);
-                STACK_PUSH(&stack, value, program -> ip - 1);
-                STACK_PUSH(&stack, value, program -> ip - 1);
+                STACK_POP(&stack, &value, program -> ip);
+                STACK_PUSH(&stack, value, program -> ip);
+                STACK_PUSH(&stack, value, program -> ip);
                 break;
             }
 
             case CMD_ADD: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip - 1);
-                STACK_POP(&stack, &val2, program -> ip - 1);
-                STACK_PUSH(&stack, val2 + val1, program -> ip - 1);
+                STACK_POP(&stack, &val1, program -> ip);
+                STACK_POP(&stack, &val2, program -> ip);
+                STACK_PUSH(&stack, val2 + val1, program -> ip);
                 break;
             }
 
             case CMD_SUB: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip - 1);
-                STACK_POP(&stack, &val2, program -> ip - 1);
-                STACK_PUSH(&stack, val2 - val1, program -> ip - 1);
+                STACK_POP(&stack, &val1, program -> ip);
+                STACK_POP(&stack, &val2, program -> ip);
+                STACK_PUSH(&stack, val2 - val1, program -> ip);
                 break;
             }
 
             case CMD_MUL: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip - 1);
-                STACK_POP(&stack, &val2, program -> ip - 1);
-                STACK_PUSH(&stack, val2 * val1, program -> ip - 1);
+                STACK_POP(&stack, &val1, program -> ip);
+                STACK_POP(&stack, &val2, program -> ip);
+                STACK_PUSH(&stack, val2 * val1, program -> ip);
                 break;
             }
 
             case CMD_DIV: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip - 1);
-                STACK_POP(&stack, &val2, program -> ip - 1);
+                STACK_POP(&stack, &val1, program -> ip);
+                STACK_POP(&stack, &val2, program -> ip);
 
                 if (val1 == 0) {
-                    printf("Zero division in operation %i!\n", program -> ip - 1);
+                    printf("Zero division in operation %i!\n", program -> ip);
                     return 1;
                 }
 
-                STACK_PUSH(&stack, val2 / val1, program -> ip - 1);
+                STACK_PUSH(&stack, val2 / val1, program -> ip);
                 break;
             }
 
@@ -204,7 +204,7 @@ int execute(Program *program) {
                 arg = (program -> code)[program -> ip++];
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", program -> ip - 1);
+                    printf("Jump to -1 in operation %i!\n", program -> ip);
                     return -1;
                 }
 
@@ -213,7 +213,7 @@ int execute(Program *program) {
             }
 
             default: {
-                printf("Unknown command %i!\n", cmd);
+                printf("Unknown command %i in operation %i!\n", cmd, program -> ip);
                 return 1;
             }
         }
