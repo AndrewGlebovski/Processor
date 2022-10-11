@@ -212,6 +212,82 @@ int execute(Program *program) {
                 break;
             }
 
+            case CMD_JB: {
+                arg = (program -> code)[program -> ip++];
+
+                int val1 = 0, val2 = 0;
+                STACK_POP(&stack, &val1, program -> ip);
+                STACK_POP(&stack, &val2, program -> ip);
+
+                if (!(val2 < val1))
+                    break;
+
+                if (arg == -1) {
+                    printf("Jump to -1 in operation %i!\n", program -> ip);
+                    return -1;
+                }
+
+                program -> ip = arg;
+                break;
+            }
+
+            case CMD_JA: {
+                arg = (program -> code)[program -> ip++];
+
+                int val1 = 0, val2 = 0;
+                STACK_POP(&stack, &val1, program -> ip);
+                STACK_POP(&stack, &val2, program -> ip);
+
+                if (!(val2 > val1))
+                    break;
+
+                if (arg == -1) {
+                    printf("Jump to -1 in operation %i!\n", program -> ip);
+                    return -1;
+                }
+
+                program -> ip = arg;
+                break;
+            }
+
+            case CMD_JE: {
+                arg = (program -> code)[program -> ip++];
+
+                int val1 = 0, val2 = 0;
+                STACK_POP(&stack, &val1, program -> ip);
+                STACK_POP(&stack, &val2, program -> ip);
+
+                if (!(val2 == val1))
+                    break;
+
+                if (arg == -1) {
+                    printf("Jump to -1 in operation %i!\n", program -> ip);
+                    return -1;
+                }
+
+                program -> ip = arg;
+                break;
+            }
+
+            case CMD_JNE: {
+                arg = (program -> code)[program -> ip++];
+
+                int val1 = 0, val2 = 0;
+                STACK_POP(&stack, &val1, program -> ip);
+                STACK_POP(&stack, &val2, program -> ip);
+
+                if (!(val2 != val1))
+                    break;
+
+                if (arg == -1) {
+                    printf("Jump to -1 in operation %i!\n", program -> ip);
+                    return -1;
+                }
+
+                program -> ip = arg;
+                break;
+            }
+
             default: {
                 printf("Unknown command %i in operation %i!\n", cmd, program -> ip);
                 return 1;
