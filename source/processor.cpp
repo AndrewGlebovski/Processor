@@ -92,8 +92,9 @@ int main() {
 
 
 int execute(Program *program) {
-    Stack stack = {};
+    Stack stack = {}, call_stack = {};
     stack_constructor(&stack, 32);
+    stack_constructor(&call_stack, 32);
 
     int reg[4] = {};
     int ram[100] = {};
@@ -105,6 +106,7 @@ int execute(Program *program) {
             case CMD_HLT: {
                 stack_dump(&stack, 0, stdout);
                 stack_destructor(&stack);
+                stack_destructor(&call_stack);
                 return 0;
             }
             
@@ -197,6 +199,25 @@ int execute(Program *program) {
                 }
 
                 STACK_PUSH(&stack, val2 / val1, program -> ip);
+                break;
+            }
+
+            case CMD_CALL: {
+                arg = (program -> code)[program -> ip++];
+
+                if (arg == -1) {
+                    printf("Jump to -1 in operation %i!\n", program -> ip);
+                    return -1;
+                }
+
+                STACK_PUSH(&call_stack, program -> ip, program -> ip);
+
+                program -> ip = arg;
+                break;
+            }
+
+            case CMD_RET: {
+                STACK_POP(&call_stack, &(program -> ip), program -> ip)
                 break;
             }
 
