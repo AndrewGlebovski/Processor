@@ -103,6 +103,8 @@ int main() {
 
 int execute(Process *process) {
     /// SHORTCUTS ///
+    int *ip = &(process -> ip);
+
     Stack *stack = &(process -> value_stack);
     Stack *call_stack = &(process -> call_stack);
 
@@ -110,8 +112,8 @@ int execute(Process *process) {
     int *ram = process -> ram;
 
 
-    while(process -> ip < process -> count) {
-        int cmd = (process -> code)[process -> ip++], arg = 0;
+    while(*ip < process -> count) {
+        int cmd = (process -> code)[(*ip)++], arg = 0;
 
         switch(cmd & 0XFFFFFF) {
             case CMD_HLT: {
@@ -123,45 +125,45 @@ int execute(Process *process) {
             
             case CMD_OUT: {
                 int value = 0;
-                STACK_POP(stack, &value, process -> ip);
+                STACK_POP(stack, &value, *ip);
                 printf("%i\n", value);
                 break;
             }
 
             case CMD_PUSH: {
-                if (cmd & BIT_CONST) arg = (process -> code)[process -> ip++];
-                if (cmd & BIT_REG) arg += reg[(process -> code)[process -> ip++]];
+                if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
+                if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++]];
                 if (cmd & BIT_MEM) arg = ram[arg];
 
-                STACK_PUSH(stack, arg, process -> ip);
+                STACK_PUSH(stack, arg, *ip);
                 break;
             }
 
             case CMD_POP: {
                 if (cmd & BIT_MEM) {
-                    if (cmd & BIT_CONST) arg = (process -> code)[process -> ip++];
-                    if (cmd & BIT_REG) arg += reg[(process -> code)[process -> ip++]];
+                    if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
+                    if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++]];
 
                     if (arg < 0 || arg > 99) {
-                        printf("Segmentation fault! Wrong RAM index in operation %i!\n", process -> ip);
+                        printf("Segmentation fault! Wrong RAM index in operation %i!\n", *ip);
                         return 1;
                     }
 
-                    STACK_POP(stack, &ram[arg], process -> ip);
+                    STACK_POP(stack, &ram[arg], *ip);
                 }
                 else if (cmd & BIT_CONST) {
                     int value = 0;
-                    STACK_POP(stack, &value, process -> ip);
+                    STACK_POP(stack, &value, *ip);
                 }
                 else if (cmd & BIT_REG) {
-                    arg = (process -> code)[process -> ip++];
+                    arg = (process -> code)[(*ip)++];
 
                     if (arg < 1 || arg > 4) {
-                        printf("Segmentation fault! Wrong register index in operation %i!\n", process -> ip);
+                        printf("Segmentation fault! Wrong register index in operation %i!\n", *ip);
                         return 1;
                     }
 
-                    STACK_POP(stack, &reg[arg - 1], process -> ip);
+                    STACK_POP(stack, &reg[arg - 1], *ip);
                 }
 
                 break;
@@ -169,159 +171,159 @@ int execute(Process *process) {
             
             case CMD_DUP: {
                 int value = 0;
-                STACK_POP(stack, &value, process -> ip);
-                STACK_PUSH(stack, value, process -> ip);
-                STACK_PUSH(stack, value, process -> ip);
+                STACK_POP(stack, &value, *ip);
+                STACK_PUSH(stack, value, *ip);
+                STACK_PUSH(stack, value, *ip);
                 break;
             }
 
             case CMD_ADD: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, process -> ip);
-                STACK_POP(stack, &val2, process -> ip);
-                STACK_PUSH(stack, val2 + val1, process -> ip);
+                STACK_POP(stack, &val1, *ip);
+                STACK_POP(stack, &val2, *ip);
+                STACK_PUSH(stack, val2 + val1, *ip);
                 break;
             }
 
             case CMD_SUB: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, process -> ip);
-                STACK_POP(stack, &val2, process -> ip);
-                STACK_PUSH(stack, val2 - val1, process -> ip);
+                STACK_POP(stack, &val1, *ip);
+                STACK_POP(stack, &val2, *ip);
+                STACK_PUSH(stack, val2 - val1, *ip);
                 break;
             }
 
             case CMD_MUL: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, process -> ip);
-                STACK_POP(stack, &val2, process -> ip);
-                STACK_PUSH(stack, val2 * val1, process -> ip);
+                STACK_POP(stack, &val1, *ip);
+                STACK_POP(stack, &val2, *ip);
+                STACK_PUSH(stack, val2 * val1, *ip);
                 break;
             }
 
             case CMD_DIV: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, process -> ip);
-                STACK_POP(stack, &val2, process -> ip);
+                STACK_POP(stack, &val1, *ip);
+                STACK_POP(stack, &val2, *ip);
 
                 if (val1 == 0) {
-                    printf("Zero division in operation %i!\n", process -> ip);
+                    printf("Zero division in operation %i!\n", *ip);
                     return 1;
                 }
 
-                STACK_PUSH(stack, val2 / val1, process -> ip);
+                STACK_PUSH(stack, val2 / val1, *ip);
                 break;
             }
 
             case CMD_CALL: {
-                arg = (process -> code)[process -> ip++];
+                arg = (process -> code)[(*ip)++];
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", process -> ip);
+                    printf("Jump to -1 in operation %i!\n", *ip);
                     return -1;
                 }
 
-                STACK_PUSH(call_stack, process -> ip, process -> ip);
+                STACK_PUSH(call_stack, *ip, *ip);
 
-                process -> ip = arg;
+                *ip = arg;
                 break;
             }
 
             case CMD_RET: {
-                STACK_POP(call_stack, &(process -> ip), process -> ip)
+                STACK_POP(call_stack, &(*ip), *ip)
                 break;
             }
 
             case CMD_JMP: {
-                arg = (process -> code)[process -> ip++];
+                arg = (process -> code)[(*ip)++];
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", process -> ip);
+                    printf("Jump to -1 in operation %i!\n", *ip);
                     return -1;
                 }
 
-                process -> ip = arg;
+                *ip = arg;
                 break;
             }
 
             case CMD_JB: {
-                arg = (process -> code)[process -> ip++];
+                arg = (process -> code)[(*ip)++];
 
                 int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, process -> ip);
-                STACK_POP(stack, &val2, process -> ip);
+                STACK_POP(stack, &val1, *ip);
+                STACK_POP(stack, &val2, *ip);
 
                 if (!(val2 < val1))
                     break;
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", process -> ip);
+                    printf("Jump to -1 in operation %i!\n", *ip);
                     return -1;
                 }
 
-                process -> ip = arg;
+                *ip = arg;
                 break;
             }
 
             case CMD_JA: {
-                arg = (process -> code)[process -> ip++];
+                arg = (process -> code)[(*ip)++];
 
                 int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, process -> ip);
-                STACK_POP(stack, &val2, process -> ip);
+                STACK_POP(stack, &val1, *ip);
+                STACK_POP(stack, &val2, *ip);
 
                 if (!(val2 > val1))
                     break;
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", process -> ip);
+                    printf("Jump to -1 in operation %i!\n", *ip);
                     return -1;
                 }
 
-                process -> ip = arg;
+                *ip = arg;
                 break;
             }
 
             case CMD_JE: {
-                arg = (process -> code)[process -> ip++];
+                arg = (process -> code)[(*ip)++];
 
                 int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, process -> ip);
-                STACK_POP(stack, &val2, process -> ip);
+                STACK_POP(stack, &val1, *ip);
+                STACK_POP(stack, &val2, *ip);
 
                 if (!(val2 == val1))
                     break;
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", process -> ip);
+                    printf("Jump to -1 in operation %i!\n", *ip);
                     return -1;
                 }
 
-                process -> ip = arg;
+                *ip = arg;
                 break;
             }
 
             case CMD_JNE: {
-                arg = (process -> code)[process -> ip++];
+                arg = (process -> code)[(*ip)++];
 
                 int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, process -> ip);
-                STACK_POP(stack, &val2, process -> ip);
+                STACK_POP(stack, &val1, *ip);
+                STACK_POP(stack, &val2, *ip);
 
                 if (!(val2 != val1))
                     break;
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", process -> ip);
+                    printf("Jump to -1 in operation %i!\n", *ip);
                     return -1;
                 }
 
-                process -> ip = arg;
+                *ip = arg;
                 break;
             }
 
             default: {
-                printf("Unknown command %i in operation %i!\n", cmd, process -> ip);
+                printf("Unknown command %i in operation %i!\n", cmd, *ip);
                 return 1;
             }
         }
