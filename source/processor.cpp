@@ -36,36 +36,43 @@ do { \
 } while(0);
 
 
-/// Contains information about byte code to execute
+/// Contains information about process to execute
 typedef struct {
     int *code = nullptr; ///< Operation code 
     int count = 0; ///< Operation count
-    int ip = 0; ///< Current operation
-} Program;
+
+    int ip = 0; ///< Instruction pointer
+
+    Stack value_stack = {}; ///< Contains values 
+    Stack call_stack = {}; ///< Function backtrace
+
+    int reg[4] = {}; ///< Process REGISTER
+    int ram[100] = {}; ///< Process RAM
+} Process;
 
 
 /**
  * \brief Reads binary file
  * \param [out] file Input file
- * \param [in]  program Program to read in
+ * \param [in]  process Process to read in
  * \return Non zero value means error
 */
-int read_file(int file, Program *program);
+int read_file(int file, Process *process);
 
 
 /**
- * \brief Executes program
- * \param program Program to execute
+ * \brief Executes process
+ * \param process Process to execute
  * \return Non zero value means error
 */
-int execute(Program *program);
+int execute(Process *process);
 
 
 /**
- * \brief Prints all information about program
- * \param [in] program Program to print
+ * \brief Prints all information about process
+ * \param [in] process Process to print
 */
-void print_program(Program *program);
+void print_process(Process *process);
 
 
 
@@ -73,17 +80,20 @@ void print_program(Program *program);
 int main() {
     int input = open("debug/binary.txt", O_RDONLY | O_BINARY);
 
-    Program program = {};
+    Process process = {};
 
-    read_file(input, &program);
+    stack_constructor(&process.value_stack, 32);
+    stack_constructor(&process.call_stack, 32);
+
+    read_file(input, &process);
 
     close(input);
 
-    print_program(&program);
+    print_process(&process);
 
-    execute(&program);
+    execute(&process);
 
-    free(program.code);
+    free(process.code);
 
     printf("Processor!");
 
@@ -91,66 +101,67 @@ int main() {
 }
 
 
-int execute(Program *program) {
-    Stack stack = {}, call_stack = {};
-    stack_constructor(&stack, 32);
-    stack_constructor(&call_stack, 32);
+int execute(Process *process) {
+    /// SHORTCUTS ///
+    Stack *stack = &(process -> value_stack);
+    Stack *call_stack = &(process -> call_stack);
 
-    int reg[4] = {};
-    int ram[100] = {};
+    int *reg = process -> reg;
+    int *ram = process -> ram;
 
-    while(program -> ip < program -> count) {
-        int cmd = (program -> code)[program -> ip++], arg = 0;
+
+    while(process -> ip < process -> count) {
+        int cmd = (process -> code)[process -> ip++], arg = 0;
 
         switch(cmd & 0XFFFFFF) {
             case CMD_HLT: {
-                stack_dump(&stack, 0, stdout);
-                stack_destructor(&stack);
-                stack_destructor(&call_stack);
+                stack_dump(stack, 0, stdout);
+                stack_destructor(stack);
+                stack_destructor(call_stack);
                 return 0;
             }
             
             case CMD_OUT: {
                 int value = 0;
-                STACK_POP(&stack, &value, program -> ip);
+                STACK_POP(stack, &value, process -> ip);
                 printf("%i\n", value);
                 break;
             }
 
             case CMD_PUSH: {
-                if (cmd & BIT_CONST) arg = (program -> code)[program -> ip++];
-                if (cmd & BIT_REG) arg += reg[(program -> code)[program -> ip++]];
+                if (cmd & BIT_CONST) arg = (process -> code)[process -> ip++];
+                if (cmd & BIT_REG) arg += reg[(process -> code)[process -> ip++]];
                 if (cmd & BIT_MEM) arg = ram[arg];
 
-                STACK_PUSH(&stack, arg, program -> ip);
+                STACK_PUSH(stack, arg, process -> ip);
                 break;
             }
 
             case CMD_POP: {
                 if (cmd & BIT_MEM) {
-                    if (cmd & BIT_CONST) arg = (program -> code)[program -> ip++];
-                    if (cmd & BIT_REG) arg += reg[(program -> code)[program -> ip++]];
+                    if (cmd & BIT_CONST) arg = (process -> code)[process -> ip++];
+                    if (cmd & BIT_REG) arg += reg[(process -> code)[process -> ip++]];
 
                     if (arg < 0 || arg > 99) {
-                        printf("Segmentation fault! Wrong RAM index in operation %i!\n", program -> ip);
+                        printf("Segmentation fault! Wrong RAM index in operation %i!\n", process -> ip);
                         return 1;
                     }
 
-                    STACK_POP(&stack, &ram[arg], program -> ip);
+                    STACK_POP(stack, &ram[arg], process -> ip);
                 }
                 else if (cmd & BIT_CONST) {
                     int value = 0;
-                    STACK_POP(&stack, &value, program -> ip);
+                    STACK_POP(stack, &value, process -> ip);
                 }
                 else if (cmd & BIT_REG) {
-                    arg = (program -> code)[program -> ip++];
+                    arg = (process -> code)[process -> ip++];
 
                     if (arg < 1 || arg > 4) {
-                        printf("Segmentation fault! Wrong register index in operation %i!\n", program -> ip);
+                        printf("Segmentation fault! Wrong register index in operation %i!\n", process -> ip);
                         return 1;
                     }
 
-                    STACK_POP(&stack, &reg[arg - 1], program -> ip);
+                    STACK_POP(stack, &reg[arg - 1], process -> ip);
                 }
 
                 break;
@@ -158,190 +169,190 @@ int execute(Program *program) {
             
             case CMD_DUP: {
                 int value = 0;
-                STACK_POP(&stack, &value, program -> ip);
-                STACK_PUSH(&stack, value, program -> ip);
-                STACK_PUSH(&stack, value, program -> ip);
+                STACK_POP(stack, &value, process -> ip);
+                STACK_PUSH(stack, value, process -> ip);
+                STACK_PUSH(stack, value, process -> ip);
                 break;
             }
 
             case CMD_ADD: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip);
-                STACK_POP(&stack, &val2, program -> ip);
-                STACK_PUSH(&stack, val2 + val1, program -> ip);
+                STACK_POP(stack, &val1, process -> ip);
+                STACK_POP(stack, &val2, process -> ip);
+                STACK_PUSH(stack, val2 + val1, process -> ip);
                 break;
             }
 
             case CMD_SUB: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip);
-                STACK_POP(&stack, &val2, program -> ip);
-                STACK_PUSH(&stack, val2 - val1, program -> ip);
+                STACK_POP(stack, &val1, process -> ip);
+                STACK_POP(stack, &val2, process -> ip);
+                STACK_PUSH(stack, val2 - val1, process -> ip);
                 break;
             }
 
             case CMD_MUL: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip);
-                STACK_POP(&stack, &val2, program -> ip);
-                STACK_PUSH(&stack, val2 * val1, program -> ip);
+                STACK_POP(stack, &val1, process -> ip);
+                STACK_POP(stack, &val2, process -> ip);
+                STACK_PUSH(stack, val2 * val1, process -> ip);
                 break;
             }
 
             case CMD_DIV: {
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip);
-                STACK_POP(&stack, &val2, program -> ip);
+                STACK_POP(stack, &val1, process -> ip);
+                STACK_POP(stack, &val2, process -> ip);
 
                 if (val1 == 0) {
-                    printf("Zero division in operation %i!\n", program -> ip);
+                    printf("Zero division in operation %i!\n", process -> ip);
                     return 1;
                 }
 
-                STACK_PUSH(&stack, val2 / val1, program -> ip);
+                STACK_PUSH(stack, val2 / val1, process -> ip);
                 break;
             }
 
             case CMD_CALL: {
-                arg = (program -> code)[program -> ip++];
+                arg = (process -> code)[process -> ip++];
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", program -> ip);
+                    printf("Jump to -1 in operation %i!\n", process -> ip);
                     return -1;
                 }
 
-                STACK_PUSH(&call_stack, program -> ip, program -> ip);
+                STACK_PUSH(call_stack, process -> ip, process -> ip);
 
-                program -> ip = arg;
+                process -> ip = arg;
                 break;
             }
 
             case CMD_RET: {
-                STACK_POP(&call_stack, &(program -> ip), program -> ip)
+                STACK_POP(call_stack, &(process -> ip), process -> ip)
                 break;
             }
 
             case CMD_JMP: {
-                arg = (program -> code)[program -> ip++];
+                arg = (process -> code)[process -> ip++];
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", program -> ip);
+                    printf("Jump to -1 in operation %i!\n", process -> ip);
                     return -1;
                 }
 
-                program -> ip = arg;
+                process -> ip = arg;
                 break;
             }
 
             case CMD_JB: {
-                arg = (program -> code)[program -> ip++];
+                arg = (process -> code)[process -> ip++];
 
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip);
-                STACK_POP(&stack, &val2, program -> ip);
+                STACK_POP(stack, &val1, process -> ip);
+                STACK_POP(stack, &val2, process -> ip);
 
                 if (!(val2 < val1))
                     break;
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", program -> ip);
+                    printf("Jump to -1 in operation %i!\n", process -> ip);
                     return -1;
                 }
 
-                program -> ip = arg;
+                process -> ip = arg;
                 break;
             }
 
             case CMD_JA: {
-                arg = (program -> code)[program -> ip++];
+                arg = (process -> code)[process -> ip++];
 
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip);
-                STACK_POP(&stack, &val2, program -> ip);
+                STACK_POP(stack, &val1, process -> ip);
+                STACK_POP(stack, &val2, process -> ip);
 
                 if (!(val2 > val1))
                     break;
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", program -> ip);
+                    printf("Jump to -1 in operation %i!\n", process -> ip);
                     return -1;
                 }
 
-                program -> ip = arg;
+                process -> ip = arg;
                 break;
             }
 
             case CMD_JE: {
-                arg = (program -> code)[program -> ip++];
+                arg = (process -> code)[process -> ip++];
 
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip);
-                STACK_POP(&stack, &val2, program -> ip);
+                STACK_POP(stack, &val1, process -> ip);
+                STACK_POP(stack, &val2, process -> ip);
 
                 if (!(val2 == val1))
                     break;
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", program -> ip);
+                    printf("Jump to -1 in operation %i!\n", process -> ip);
                     return -1;
                 }
 
-                program -> ip = arg;
+                process -> ip = arg;
                 break;
             }
 
             case CMD_JNE: {
-                arg = (program -> code)[program -> ip++];
+                arg = (process -> code)[process -> ip++];
 
                 int val1 = 0, val2 = 0;
-                STACK_POP(&stack, &val1, program -> ip);
-                STACK_POP(&stack, &val2, program -> ip);
+                STACK_POP(stack, &val1, process -> ip);
+                STACK_POP(stack, &val2, process -> ip);
 
                 if (!(val2 != val1))
                     break;
 
                 if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", program -> ip);
+                    printf("Jump to -1 in operation %i!\n", process -> ip);
                     return -1;
                 }
 
-                program -> ip = arg;
+                process -> ip = arg;
                 break;
             }
 
             default: {
-                printf("Unknown command %i in operation %i!\n", cmd, program -> ip);
+                printf("Unknown command %i in operation %i!\n", cmd, process -> ip);
                 return 1;
             }
         }
     }
 
-    stack_destructor(&stack);
+    stack_destructor(stack);
 
-    printf("[Warning] No hlt at end of the program!\n");
+    printf("[Warning] No hlt at end of the process!\n");
     return 1;
 }
 
 
-int read_file(int file, Program *program) {
+int read_file(int file, Process *process) {
     if (file == -1) {
         printf("Invalid file!\n");
         return 1;
     }
 
-    if (!program) {
+    if (!process) {
         printf("Can't work with then null pointer!\n");
         return 1;
     }
 
-    int b = read(file, &(program -> count), sizeof(int));
+    int b = read(file, &(process -> count), sizeof(int));
 
-    program -> code = (int *) calloc(program -> count, sizeof(int));
+    process -> code = (int *) calloc(process -> count, sizeof(int));
     
-    b += read(file, program -> code, (unsigned int) program -> count * sizeof(int));
+    b += read(file, process -> code, (unsigned int) process -> count * sizeof(int));
 
-    if (b != (program -> count + 1) * (int) sizeof(int)) {
-        printf("Expected bytes %i, actualy read %i", b, (program -> count + 1) * (int) sizeof(int));
+    if (b != (process -> count + 1) * (int) sizeof(int)) {
+        printf("Expected bytes %i, actualy read %i", b, (process -> count + 1) * (int) sizeof(int));
         return 1;
     }
 
@@ -349,11 +360,11 @@ int read_file(int file, Program *program) {
 }
 
 
-void print_program(Program *program) {
-    printf("Operation count: %i\n", program -> count);
+void print_process(Process *process) {
+    printf("Operation count: %i\n", process -> count);
 
-    for(int i = 0; i < program -> count; i++)
-        printf("%i ", program -> code[i]);
+    for(int i = 0; i < process -> count; i++)
+        printf("%i ", process -> code[i]);
 
     putchar('\n');
 }
