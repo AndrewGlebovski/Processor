@@ -197,6 +197,9 @@ int translate(Program *program, Text *text, FILE *listing) {
             else if (strcmp(cmd, "jne") == 0) {
                 SET_OPERATION_AND_ARG(CMD_JNE, get_label_value(program, (text -> lines)[i].str + n + 1));
             }
+            else if (strcmp(cmd, "call") == 0) {
+                SET_OPERATION_AND_ARG(CMD_CALL, get_label_value(program, (text -> lines)[i].str + n + 1));
+            }
             else {
                 Label new_label = {program -> ip, (text -> lines)[i].str};
                 insert_label(program, &new_label);
@@ -317,6 +320,17 @@ int translate(Program *program, Text *text, FILE *listing) {
         }
         else if (strcmp(cmd, "div") == 0) {
             SET_OPERATION(CMD_DIV);
+        }
+        else if (strcmp(cmd, "ret") == 0) {
+            SET_OPERATION(CMD_RET);
+        }
+        else if (strcmp(cmd, "call") == 0) {
+            int value = 0;
+            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
+                printf("Wrong argument to jmp at line %i!\n", i + 1);
+                return 1;
+            }
+            SET_OPERATION_AND_ARG(CMD_CALL, value);
         }
         else if (strcmp(cmd, "jmp") == 0) {
             int value = 0;

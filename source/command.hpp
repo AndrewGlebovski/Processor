@@ -14,7 +14,8 @@ typedef enum {
     CMD_JA   = 11, ///< Jump if ahead
     CMD_JE   = 12, ///< Jump if equal
     CMD_JNE  = 13, ///< Jump if not equal
-    CMD_MAX  = 14, ///< Jump if not equal
+    CMD_CALL = 14, ///< Function call
+    CMD_RET  = 15, ///< Function return
 } COMMANDS;
 
 
