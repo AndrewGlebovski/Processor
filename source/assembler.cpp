@@ -185,7 +185,18 @@ int translate(Program *program, Text *text, FILE *listing) {
             if (strcmp(cmd, "jmp") == 0) {
                 SET_OPERATION_AND_ARG(CMD_JMP, get_label_value(program, (text -> lines)[i].str + n + 1));
             }
-
+            else if (strcmp(cmd, "jb") == 0) {
+                SET_OPERATION_AND_ARG(CMD_JB, get_label_value(program, (text -> lines)[i].str + n + 1));
+            }
+            else if (strcmp(cmd, "ja") == 0) {
+                SET_OPERATION_AND_ARG(CMD_JA, get_label_value(program, (text -> lines)[i].str + n + 1));
+            }
+            else if (strcmp(cmd, "je") == 0) {
+                SET_OPERATION_AND_ARG(CMD_JE, get_label_value(program, (text -> lines)[i].str + n + 1));
+            }
+            else if (strcmp(cmd, "jne") == 0) {
+                SET_OPERATION_AND_ARG(CMD_JNE, get_label_value(program, (text -> lines)[i].str + n + 1));
+            }
             else {
                 Label new_label = {program -> ip, (text -> lines)[i].str};
                 insert_label(program, &new_label);
@@ -264,16 +275,36 @@ int translate(Program *program, Text *text, FILE *listing) {
             SET_OPERATION(CMD_OUT);
         }
         else if (strcmp(cmd, "jb") == 0) {
-            SET_OPERATION(CMD_JB);
+            int value = 0;
+            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
+                printf("Wrong argument to jb at line %i!\n", i + 1);
+                return 1;
+            }
+            SET_OPERATION_AND_ARG(CMD_JB, value);
         }
         else if (strcmp(cmd, "ja") == 0) {
-            SET_OPERATION(CMD_JA);
+            int value = 0;
+            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
+                printf("Wrong argument to ja at line %i!\n", i + 1);
+                return 1;
+            }
+            SET_OPERATION_AND_ARG(CMD_JA, value);
         }
         else if (strcmp(cmd, "je") == 0) {
-            SET_OPERATION(CMD_JE);
+            int value = 0;
+            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
+                printf("Wrong argument to je at line %i!\n", i + 1);
+                return 1;
+            }
+            SET_OPERATION_AND_ARG(CMD_JE, value);
         }
         else if (strcmp(cmd, "jne") == 0) {
-            SET_OPERATION(CMD_JNE);
+            int value = 0;
+            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
+                printf("Wrong argument to jne at line %i!\n", i + 1);
+                return 1;
+            }
+            SET_OPERATION_AND_ARG(CMD_JNE, value);
         }
         else if (strcmp(cmd, "add") == 0) {
             SET_OPERATION(CMD_ADD);
