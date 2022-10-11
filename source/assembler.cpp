@@ -176,6 +176,7 @@ int translate(Program *program, Text *text, FILE *listing) {
         if (comment)
             (text -> lines)[i].str[comment - (text -> lines)[i].str] = '\0';
         */
+        if (*(text -> lines)[i].str == '\0') continue; // Empty line
 
         int n = 0;
         char cmd[10] = "";
