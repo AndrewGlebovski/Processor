@@ -115,6 +115,15 @@ String get_token(char *origin, const char *solo);
 
 
 /**
+ * \brief Compares two strings structs
+ * \param [in] str1 First string to compare
+ * \param [in] str2 Second string to compare
+ * \return Non zero value means equality
+*/
+int is_equal(String *str1, String *str2);
+
+
+/**
  * \brief Prints string
  * \param [in] str String to print
 */
@@ -435,6 +444,15 @@ int get_label_value(Program *program, char *label_name) {
     }
 
     return -1;
+}
+
+
+int is_equal(String *str1, String *str2) {
+    if (str1 -> len != str2 -> len) return 0;
+    for(int i = 0; i < str1 -> len; i++)
+        if (str1 -> str[i] != str2 -> str[i]) return 0;
+    
+    return 1;
 }
 
 
