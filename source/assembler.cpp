@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <fcntl.h>
 #include <io.h>
@@ -5,6 +6,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "text.hpp"
+
 #include "command.hpp"
 
 
