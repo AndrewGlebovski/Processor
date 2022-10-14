@@ -12,7 +12,7 @@
 do { \
     (program -> code)[program -> ip++] = CMD; \
     fprintf(listing, "%.4i %.8X             %s\n", program -> ip - 1, CMD, (text -> lines)[i].str); \
-} while(0) \
+} while(0)
 
 
 /// Sets operation code and arg and prints that to the listing file
@@ -21,7 +21,7 @@ do { \
     (program -> code)[program -> ip++] = CMD; \
     (program -> code)[program -> ip++] = ARG; \
     fprintf(listing, "%.4i %.8X % .4i       %s\n", program -> ip - 2, CMD, ARG, (text -> lines)[i].str); \
-} while(0) \
+} while(0)
 
 
 /// Sets operation code and args and prints that to the listing file
@@ -31,7 +31,7 @@ do { \
     (program -> code)[program -> ip++] = ARG1; \
     (program -> code)[program -> ip++] = ARG2; \
     fprintf(listing, "%.4i %.8X % .4i % .4i %s\n", program -> ip - 3, CMD, ARG1, ARG2, (text -> lines)[i].str); \
-} while(0) \
+} while(0)
 
 
 /// Contains information about label
@@ -176,10 +176,11 @@ int translate(Program *program, Text *text, FILE *listing) {
         if (comment)
             (text -> lines)[i].str[comment - (text -> lines)[i].str] = '\0';
         */
+
         if (*(text -> lines)[i].str == '\0') continue; // Empty line
 
         int n = 0;
-        char cmd[10] = "";
+        char cmd[20] = "";
         sscanf((text -> lines)[i].str, "%s%n", cmd, &n);
 
         if (strchr((text -> lines)[i].str, ':')) {
