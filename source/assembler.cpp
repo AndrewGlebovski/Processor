@@ -3,6 +3,7 @@
 #include <io.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "text.hpp"
 #include "command.hpp"
 
@@ -104,6 +105,22 @@ int free_program(Program *program);
 void print_program(Program *program);
 
 
+/**
+ * \brief Finds token in string
+ * \param [in] origin Search start pointer
+ * \param [in] solo Solo delimeters
+ * \return Token pointer and size
+*/
+String get_token(char *origin, const char *solo);
+
+
+/**
+ * \brief Prints string
+ * \param [in] str String to print
+*/
+void print_string(String *str);
+
+
 
 
 int main() {
@@ -123,6 +140,15 @@ int main() {
     for(int i = 0; i < text.size; i++)
         printf("[%.3i] %s\n", text.lines[i].len, text.lines[i].str);
     */
+
+    for(int i = 0; i < text.size; i++) {
+        String str = get_token(text.lines[i].str, "[+]:");
+        while(str.len != -1) {
+            print_string(&str);
+            str = get_token(str.str + str.len, "[+]:");
+        }
+    }
+
     Program program = {};
     
     program.code = (int *) calloc(text.size * 3, sizeof(int));
@@ -409,6 +435,35 @@ int get_label_value(Program *program, char *label_name) {
     }
 
     return -1;
+}
+
+
+String get_token(char *origin, const char *solo) {
+    String token = {origin, 0};
+
+    while (isspace(*token.str)) token.str++;
+
+    if (*token.str == '\0') return {nullptr, -1};
+
+    if (strchr(solo, *token.str))
+        token.len = 1;
+
+    else if (isalpha(*token.str))
+        while (isalnum(*(token.str + token.len))) token.len++;
+
+    else if (isdigit(*token.str))
+        while (isdigit(*(token.str + token.len))) token.len++;
+
+    else return {token.str, 1};
+
+    return token;
+}
+
+
+void print_string(String *str) {
+    for(int i = 0; i < str -> len; i++)
+        putchar(str -> str[i]);
+    putchar('\n');
 }
 
 
