@@ -40,7 +40,7 @@ do { \
 /// Contains information about label
 typedef struct {
     int value = 0;
-    char *name = nullptr;
+    String name = {};
 } Label;
 
 
@@ -80,7 +80,7 @@ int write_file(int file, Program *program);
  * \param [in] new_label This label will be inserted
  * \note It's impossible to redefine value of label
 */
-void insert_label(Program *program, Label *new_label);
+void insert_label(Program *program, String *new_label, int new_value);
 
 
 /**
@@ -89,7 +89,7 @@ void insert_label(Program *program, Label *new_label);
  * \param [in] label_name Label with this name will be searched
  * \return Actual value or -1 if label not found
 */
-int get_label_value(Program *program, char *label_name);
+int get_label_value(Program *program, String *label);
 
 
 /**
@@ -126,6 +126,18 @@ int is_equal(String *str1, String *str2);
 
 
 /**
+ * \brief Compares two strings structs
+ * \param [in] str1 First string to compare
+ * \param [in] str2 Second string to compare
+ * \return Non zero value means equality
+*/
+int is_equal(String *str1, const char *str2);
+
+
+int str_to_int(String *str);
+
+
+/**
  * \brief Prints string
  * \param [in] str String to print
 */
@@ -151,7 +163,7 @@ int main() {
     for(int i = 0; i < text.size; i++)
         printf("[%.3i] %s\n", text.lines[i].len, text.lines[i].str);
     */
-
+   /*
     for(int i = 0; i < text.size; i++) {
         String str = get_token(text.lines[i].str, "[+]:");
         while(str.len != -1) {
@@ -159,7 +171,7 @@ int main() {
             str = get_token(str.str + str.len, "[+]:");
         }
     }
-
+    */
     Program program = {};
     
     program.code = (int *) calloc(text.size * 3, sizeof(int));
@@ -175,7 +187,7 @@ int main() {
     if (translate(&program, &text, listing))
         return 1;
 
-    //print_program(&program);
+    print_program(&program);
 
     int output = open("debug/binary.txt", O_WRONLY | O_CREAT | O_BINARY);
 
@@ -197,6 +209,20 @@ int main() {
 }
 
 
+#define DEF_CMD(name, num, arg, action) \
+    if (is_equal(&cmd, #name)) { \
+        program -> code[program -> ip++] = num; \
+        if (arg) { \
+            action; \
+        } \
+        else { \
+            fprintf(listing, "%.4i %.8X             %s\n", program -> ip - 1, num, text -> lines[i].str); \
+        } \
+        continue; \
+    } \
+    else
+
+
 int translate(Program *program, Text *text, FILE *listing) {
     if (!listing) {
         printf("No listing file provided!\n");
@@ -207,201 +233,30 @@ int translate(Program *program, Text *text, FILE *listing) {
 
     program -> ip = 0;
 
-    for(int i = 0; (text -> lines)[i].str != nullptr && (text -> lines)[i].len != -1; i++) {
-        /*
-        const char *comment  = strchr((text -> lines)[i].str, '#');
-        if (comment)
-            (text -> lines)[i].str[comment - (text -> lines)[i].str] = '\0';
-        */
+    for(int i = 0; text -> lines[i].str != nullptr && text -> lines[i].len != -1; i++) {
+        String cmd = get_token(text -> lines[i].str, "[+]:");
 
-        if (*(text -> lines)[i].str == '\0') continue; // Empty line
+        if (!cmd.str) continue;
 
-        int n = 0;
-        char cmd[20] = "";
-        sscanf((text -> lines)[i].str, "%s%n", cmd, &n);
+        String arg = get_token(cmd.str + cmd.len, "[+]:");
 
-        if (strchr((text -> lines)[i].str, ':')) {
-            if (strcmp(cmd, "jmp") == 0) {
-                SET_OPERATION_AND_ARG(CMD_JMP, get_label_value(program, (text -> lines)[i].str + n + 1));
-            }
-            else if (strcmp(cmd, "jb") == 0) {
-                SET_OPERATION_AND_ARG(CMD_JB, get_label_value(program, (text -> lines)[i].str + n + 1));
-            }
-            else if (strcmp(cmd, "ja") == 0) {
-                SET_OPERATION_AND_ARG(CMD_JA, get_label_value(program, (text -> lines)[i].str + n + 1));
-            }
-            else if (strcmp(cmd, "je") == 0) {
-                SET_OPERATION_AND_ARG(CMD_JE, get_label_value(program, (text -> lines)[i].str + n + 1));
-            }
-            else if (strcmp(cmd, "jne") == 0) {
-                SET_OPERATION_AND_ARG(CMD_JNE, get_label_value(program, (text -> lines)[i].str + n + 1));
-            }
-            else if (strcmp(cmd, "call") == 0) {
-                SET_OPERATION_AND_ARG(CMD_CALL, get_label_value(program, (text -> lines)[i].str + n + 1));
-            }
-            else {
-                Label new_label = {program -> ip, (text -> lines)[i].str};
-                insert_label(program, &new_label);
-            }
-            
-            continue;
-        }
-
-        if (strcmp(cmd, "hlt") == 0) {
-            (program -> code)[program -> ip++] = CMD_HLT;
-            break;
-        }
-        else if (strcmp(cmd, "push") == 0) {
-            char *arg = (text -> lines)[i].str + n + 1;
-            int value = atoi(arg), cmd_code = CMD_PUSH;
-
-            if (strchr(arg, '[')) {
-                if (!strchr(arg, ']')) {
-                    printf("No closing bracket after push in line %i!\n", i + 1);
-                    return 1;
-                }
-
-                arg = strchr(arg, '[') + 1;
-                sscanf(arg, "%i", &value);
-                cmd_code |= BIT_MEM;
+        #include "cmd.hpp"
+        /*else*/ {
+            if (is_equal(&arg, ":")) {
+                insert_label(program, &cmd, i);
+                continue;
             }
 
-            if (strchr(arg, '+')) {
-                sscanf(arg, "%i%n", &value, &n);
-
-                SET_OPERATION_AND_ARGS(cmd_code | (BIT_CONST | BIT_REG), value, (arg + n + 1)[1] - 'A' + 1);
-            }
-            else if (value != 0) {
-                SET_OPERATION_AND_ARG(cmd_code | BIT_CONST, value);
-            }
-            else if  (strlen(arg) == 3 && arg[0] == 'R'&& arg[2] == 'X') {
-                SET_OPERATION_AND_ARG(cmd_code | BIT_REG, arg[1] - 'A' + 1);
-            }
-            else {
-                printf("Wrong argument to push %s in line %i!\n", arg, i + 1);
-                return 1;
-            }
-        }
-        else if (strcmp(cmd, "pop") == 0) {
-            char *arg = (text -> lines)[i].str + n + 1;
-            int value = atoi(arg), cmd_code = CMD_POP;
-
-            if (strchr(arg, '[')) {
-                if (!strchr(arg, ']')) {
-                    printf("No closing bracket after pop in line %i!\n", i + 1);
-                    return 1;
-                }
-
-                arg = strchr(arg, '[') + 1;
-                sscanf(arg, "%i", &value);
-                cmd_code |= BIT_MEM;
-            }
-
-            if (strchr(arg, '+')) {
-                sscanf(arg, "%i%n", &value, &n);
-
-                SET_OPERATION_AND_ARGS(cmd_code | (BIT_CONST | BIT_REG), value, (arg + n + 1)[1] - 'A' + 1);
-            }
-            else if (value != 0) {
-                SET_OPERATION_AND_ARG(cmd_code | BIT_CONST, value);
-            }
-            else if  (strlen(arg) == 3 && arg[0] == 'R'&& arg[2] == 'X') {
-                SET_OPERATION_AND_ARG(cmd_code | BIT_REG, arg[1] - 'A' + 1);
-            }
-            else {
-                printf("Wrong argument to pop %s in line %i!\n", arg, i + 1);
-                return 1;
-            }
-        }
-        else if (strcmp(cmd, "out") == 0) {
-            SET_OPERATION(CMD_OUT);
-        }
-        else if (strcmp(cmd, "jb") == 0) {
-            int value = 0;
-            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
-                printf("Wrong argument to jb at line %i!\n", i + 1);
-                return 1;
-            }
-            SET_OPERATION_AND_ARG(CMD_JB, value);
-        }
-        else if (strcmp(cmd, "ja") == 0) {
-            int value = 0;
-            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
-                printf("Wrong argument to ja at line %i!\n", i + 1);
-                return 1;
-            }
-            SET_OPERATION_AND_ARG(CMD_JA, value);
-        }
-        else if (strcmp(cmd, "je") == 0) {
-            int value = 0;
-            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
-                printf("Wrong argument to je at line %i!\n", i + 1);
-                return 1;
-            }
-            SET_OPERATION_AND_ARG(CMD_JE, value);
-        }
-        else if (strcmp(cmd, "jne") == 0) {
-            int value = 0;
-            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
-                printf("Wrong argument to jne at line %i!\n", i + 1);
-                return 1;
-            }
-            SET_OPERATION_AND_ARG(CMD_JNE, value);
-        }
-        else if (strcmp(cmd, "add") == 0) {
-            SET_OPERATION(CMD_ADD);
-        }
-        else if (strcmp(cmd, "sub") == 0) {
-            SET_OPERATION(CMD_SUB);
-        }
-        else if (strcmp(cmd, "mul") == 0) {
-            SET_OPERATION(CMD_MUL);
-        }
-        else if (strcmp(cmd, "div") == 0) {
-            SET_OPERATION(CMD_DIV);
-        }
-        else if (strcmp(cmd, "ret") == 0) {
-            SET_OPERATION(CMD_RET);
-        }
-        else if (strcmp(cmd, "call") == 0) {
-            int value = 0;
-            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
-                printf("Wrong argument to jmp at line %i!\n", i + 1);
-                return 1;
-            }
-            SET_OPERATION_AND_ARG(CMD_CALL, value);
-        }
-        else if (strcmp(cmd, "jmp") == 0) {
-            int value = 0;
-            if (sscanf((text -> lines)[i].str + n, "%i", &value) == 0){
-                printf("Wrong argument to jmp at line %i!\n", i + 1);
-                return 1;
-            }
-            SET_OPERATION_AND_ARG(CMD_JMP, value);
-        }
-        else if (strcmp(cmd, "dup") == 0) {
-            SET_OPERATION(CMD_DUP);
-        }
-        else {
-            printf("Unknown command %s in line %i\n", cmd, i);
+            printf("Unknown command in line %i!\n", i + 1);
             return 1;
         }
     }
 
-    program -> count = program -> ip;
-
-    program -> code = (int *) realloc(program -> code, program -> count * sizeof(int));
-    
-    if (program -> labels_count)
-        program -> labels = (Label *) realloc(program -> labels, program -> labels_count * sizeof(Label));
-
-    if (!program -> code || !program -> labels) {
-        printf("Failed to reallocate memory!\n");
-        return 1;
-    }
-
     return 0;
 }
+
+
+#undef DEF_CMD
 
 
 int write_file(int file, Program *program) {
@@ -428,19 +283,19 @@ int write_file(int file, Program *program) {
 }
 
 
-void insert_label(Program *program, Label *new_label) {
+void insert_label(Program *program, String *new_label, int new_value) {
     for(int i = 0; i < program -> labels_count; i++) {
-        if (strcmp((program -> labels)[i].name, new_label -> name) == 0)
+        if (is_equal(&(program -> labels[i].name), new_label))
             return;
     }
 
-    program -> labels[program -> labels_count++] = *new_label;
+    program -> labels[program -> labels_count++] = {new_value, *new_label};
 }
 
 
-int get_label_value(Program *program, char *label_name) {
+int get_label_value(Program *program, String *label) {
     for(int i = 0; i < program -> labels_count; i++) {
-        if (strcmp((program -> labels)[i].name, label_name) == 0) {
+        if (is_equal(&(program -> labels[i].name), label)) {
             return (program -> labels)[i].value;
         }
     }
@@ -452,29 +307,47 @@ int get_label_value(Program *program, char *label_name) {
 int is_equal(String *str1, String *str2) {
     if (str1 -> len != str2 -> len) return 0;
     for(int i = 0; i < str1 -> len; i++)
-        if (str1 -> str[i] != str2 -> str[i]) return 0;
+        if (tolower(str1 -> str[i]) != tolower(str2 -> str[i])) 
+            return 0;
     
     return 1;
 }
 
 
+int is_equal(String *str1, const char *str2) {
+    for(int i = 0; i < str1 -> len; i++)
+        if (tolower(str1 -> str[i]) != tolower(str2[i])) 
+            return 0;
+    
+    return 1;
+}
+
+
+int str_to_int(String *str) {
+    char c = *(str -> str + str -> len);
+
+    int value = atoi(str -> str);
+
+    *(str -> str + str -> len) = c;
+
+    return value;
+}
+
+
 String get_token(char *origin, const char *solo) {
-    String token = {origin, 0};
+    String token = {origin, 1};
 
     while (isspace(*token.str)) token.str++;
 
     if (*token.str == '\0') return {nullptr, -1};
 
-    if (strchr(solo, *token.str))
-        token.len = 1;
+    if (strchr(solo, *token.str)) return token;
 
     else if (isalpha(*token.str))
         while (isalnum(*(token.str + token.len))) token.len++;
 
-    else if (isdigit(*token.str))
+    else if (isdigit(*token.str) || *token.str == '+' || *token.str == '-')
         while (isdigit(*(token.str + token.len))) token.len++;
-
-    else return {token.str, 1};
 
     return token;
 }
@@ -515,5 +388,5 @@ void print_program(Program *program) {
 
     printf("\nLabels count: %i\n", program -> labels_count);
     for(int i = 0; i < program -> labels_count; i++)
-        printf("%s %i\n", program -> labels[i].name, program -> labels[i].value);
+        print_string(&program -> labels[i].name);
 }

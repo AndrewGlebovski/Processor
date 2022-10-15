@@ -1,4 +1,4 @@
-#define DEF_CMD(name, num) \
+#define DEF_CMD(name, num, ...) \
     CMD_##name = num,
 
 /// List of commands
