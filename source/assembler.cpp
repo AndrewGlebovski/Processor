@@ -144,10 +144,10 @@ int str_to_int(String *str, int *value);
 void print_string(String *str);
 
 
-int set_push_args(FILE *listing, int *code, int *ip, String *cmd);
+int set_push_args(FILE *listing, Program *program, int *code, int *ip, String *cmd);
 
 
-int set_jmp_args(FILE *listing, int *code, int *ip, String *cmd);
+int set_jmp_args(FILE *listing, Program *program, int *code, int *ip, String *cmd);
 
 
 
@@ -247,12 +247,14 @@ int translate(Program *program, Text *text, FILE *listing) {
 
         if (!cmd.str) continue;
 
-        String arg = get_token(cmd.str + cmd.len, "[+]:");
-
         #include "cmd.hpp"
         /*else*/ {
+            String arg = get_token(cmd.str + cmd.len, "[+]:");
+
+            if (!arg.str) return 1;
+
             if (is_equal(&arg, ":")) {
-                insert_label(program, &cmd, i);
+                insert_label(program, &cmd, program -> ip);
                 continue;
             }
 
@@ -403,7 +405,7 @@ void print_program(Program *program) {
 }
 
 
-int set_push_args(FILE *listing, int *code, int *ip, String *cmd) {
+int set_push_args(FILE *listing, Program *program, int *code, int *ip, String *cmd) {
     fprintf(listing, "%.4i %.8X             %s\n", *ip, code[*ip], cmd -> str);
     return 0;
     /*
@@ -447,17 +449,19 @@ int set_push_args(FILE *listing, int *code, int *ip, String *cmd) {
 }
 
 
-int set_jmp_args(FILE *listing, int *code, int *ip, String *cmd) {
-    fprintf(listing, "%.4i %.8X             %s\n", *ip, code[*ip], cmd -> str);
-    return 0;
-    /*
-    int value = get_label_value(program, &arg);
+int set_jmp_args(FILE *listing, Program *program, int *code, int *ip, String *cmd) {
+    String arg = get_token(cmd -> str + cmd -> len, "[+]:");
 
-    if (value > -1)
-        program -> code[program -> ip++] = value;
-    else {
-        value = str_to_int(&arg);
-        program -> code[program -> ip--] = value;
-    }
-    */
+    if (!arg.str) return 1;
+
+    int value = 0;
+
+    if (str_to_int(&arg, &value))
+        code[(*ip)++] = value;
+    else
+        code[(*ip)++] = get_label_value(program, &arg);
+
+    fprintf(listing, "%.4i %.8X %.4i        %s\n", *ip - 2, code[*ip - 2], code[*ip - 1], cmd -> str);
+
+    return 0;
 }
