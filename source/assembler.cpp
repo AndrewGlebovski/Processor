@@ -30,62 +30,62 @@ typedef struct {
     int *code = nullptr; ///< Operation code 
     int count = 0; ///< Operation count
     int ip = 0; ///< Current operation
-    Label *labels = nullptr; ///< Program labels
+    Label *labels = nullptr; ///< Process labels
     int labels_count = 0; ///< Labels count
-} Program;
+} Process;
 
 
 /**
  * \brief Translate text from file to actual code
- * \param [out] program This struct will be filled with information
+ * \param [out] process This struct will be filled with information
  * \param [in]  text Text to analyze
  * \param [in]  listing File for listing
  * \return Non zero value means error
  * \note Don't forget to allocate code and labels before and free code and labels after using translate
 */
-int translate(Program *program, Text *text, FILE *listing);
+int translate(Process *process, Text *text, FILE *listing);
 
 
 /**
  * \brief Write binary output to file
  * \param [out] file Output file
- * \param [in]  program Program to write
+ * \param [in]  process Process to write
  * \return Non zero value means error
 */
-int write_file(int file, Program *program);
+int write_file(int file, Process *process);
 
 
 /**
  * \brief Inserts label if it does not exist
- * \param [in] program Program to insert label
+ * \param [in] process Process to insert label
  * \param [in] new_label This label will be inserted
  * \note It's impossible to redefine value of label
 */
-void insert_label(Program *program, String *new_label, int new_value);
+void insert_label(Process *process, String *new_label, int new_value);
 
 
 /**
  * \brief Gets label value
- * \param [in] program Program to search label in
+ * \param [in] process Process to search label in
  * \param [in] label_name Label with this name will be searched
  * \return Actual value or -1 if label not found
 */
-int get_label_value(Program *program, String *label);
+int get_label_value(Process *process, String *label);
 
 
 /**
- * \brief Free program memory
- * \param [in] program This program will be reinitialize
+ * \brief Free process memory
+ * \param [in] process This process will be reinitialize
  * \return Non zero value means error
 */
-int free_program(Program *program);
+int free_process(Process *process);
 
 
 /**
- * \brief Prints all information about program
- * \param [in] program Program to print
+ * \brief Prints all information about process
+ * \param [in] process Process to print
 */
-void print_program(Program *program);
+void print_process(Process *process);
 
 
 /**
@@ -129,7 +129,7 @@ void print_string(String *str);
 int set_push_args(FILE *listing, int *code, int *ip, String *cmd);
 
 
-int set_jmp_args(FILE *listing, Program *program, int *code, int *ip, String *cmd);
+int set_jmp_args(FILE *listing, Process *process, int *code, int *ip, String *cmd);
 
 
 int get_register_index(String *name);
@@ -150,35 +150,21 @@ int main() {
     read_file(input, &text);
 
     close(input);
-    /*
-    for(int i = 0; i < text.size; i++)
-        printf("[%.3i] %s\n", text.lines[i].len, text.lines[i].str);
-    */
-   /*
-    for(int i = 0; i < text.size; i++) {
-        String str = get_token(text.lines[i].str, "[+]:", "#");
-        while(str.len != -1) {
-            print_string(&str);
-            str = get_token(str.str + str.len, "[+]:", "#");
-        }
-    }
-    */
-    Program program = {};
+
+    Process process = {};
     
-    program.code = (int *) calloc(text.size * 3, sizeof(int));
-    program.labels = (Label *) calloc(text.size, sizeof(Label));
+    process.code = (int *) calloc(text.size * 3, sizeof(int));
+    process.labels = (Label *) calloc(text.size, sizeof(Label));
 
     FILE *listing = fopen("debug/listing.txt", "w");
 
     fprintf(listing, "First pass\n");
-    if (translate(&program, &text, listing))
+    if (translate(&process, &text, listing))
         return 1;
 
     fprintf(listing, "\nSecond pass\n");
-    if (translate(&program, &text, listing))
+    if (translate(&process, &text, listing))
         return 1;
-
-    print_program(&program);
 
     int output = open("debug/binary.txt", O_WRONLY | O_CREAT | O_BINARY);
 
@@ -187,11 +173,11 @@ int main() {
         return 1;
     }
 
-    write_file(output, &program);
+    write_file(output, &process);
 
     close(output);
 
-    free_program(&program);
+    free_process(&process);
     free_text(&text);
 
     printf("Assembler!\n");
@@ -202,7 +188,7 @@ int main() {
 
 #define DEF_CMD(name, num, arg, action) \
     if (is_equal(&cmd, #name)) { \
-        program -> code[program -> ip++] = num; \
+        process -> code[process -> ip++] = num; \
         if (arg) { \
             if (action) { \
                 printf("Wrong argument in line %i!\n", i + 1); \
@@ -210,14 +196,14 @@ int main() {
             } \
         } \
         else { \
-            fprintf(listing, "%.4i %.8X             %s\n", program -> ip - 1, num, text -> lines[i].str); \
+            fprintf(listing, "%.4i %.8X             %s\n", process -> ip - 1, num, text -> lines[i].str); \
         } \
         continue; \
     } \
     else
 
 
-int translate(Program *program, Text *text, FILE *listing) {
+int translate(Process *process, Text *text, FILE *listing) {
     if (!listing) {
         printf("No listing file provided!\n");
         return 1;
@@ -225,7 +211,7 @@ int translate(Program *program, Text *text, FILE *listing) {
 
     fprintf(listing, "IP   COMMAND  ARG 1 ARG 2 NAME\n");
 
-    program -> ip = 0;
+    process -> ip = 0;
 
     for(int i = 0; text -> lines[i].str != nullptr && text -> lines[i].len != -1; i++) {
         String cmd = get_token(text -> lines[i].str, "[+]:", "#");
@@ -239,7 +225,7 @@ int translate(Program *program, Text *text, FILE *listing) {
             if (!arg.str) return 1;
 
             if (is_equal(&arg, ":")) {
-                insert_label(program, &cmd, program -> ip);
+                insert_label(process, &cmd, process -> ip);
                 continue;
             }
 
@@ -248,7 +234,7 @@ int translate(Program *program, Text *text, FILE *listing) {
         }
     }
 
-    program -> count = program -> ip;
+    process -> count = process -> ip;
 
     return 0;
 }
@@ -257,23 +243,23 @@ int translate(Program *program, Text *text, FILE *listing) {
 #undef DEF_CMD
 
 
-int write_file(int file, Program *program) {
+int write_file(int file, Process *process) {
     if (file == -1) {
         printf("Invalid file!\n");
         return 1;
     }
 
-    if (!program) {
+    if (!process) {
         printf("Can't work with then null pointer!\n");
         return 1;
     }
 
-    int b = write(file, &(program -> count), sizeof(int));
+    int b = write(file, &(process -> count), sizeof(int));
 
-    b += write(file, program -> code, (unsigned int) program -> count * sizeof(int));
+    b += write(file, process -> code, (unsigned int) process -> count * sizeof(int));
 
-    if (b != (program -> count + 1) * (int) sizeof(int)) {
-        printf("Expected bytes %i, actualy written %i", b, (program -> count + 1) * (int) sizeof(int));
+    if (b != (process -> count + 1) * (int) sizeof(int)) {
+        printf("Expected bytes %i, actualy written %i", b, (process -> count + 1) * (int) sizeof(int));
         return 1;
     }
 
@@ -281,20 +267,20 @@ int write_file(int file, Program *program) {
 }
 
 
-void insert_label(Program *program, String *new_label, int new_value) {
-    for(int i = 0; i < program -> labels_count; i++) {
-        if (is_equal(&(program -> labels[i].name), new_label))
+void insert_label(Process *process, String *new_label, int new_value) {
+    for(int i = 0; i < process -> labels_count; i++) {
+        if (is_equal(&(process -> labels[i].name), new_label))
             return;
     }
 
-    program -> labels[program -> labels_count++] = {new_value, *new_label};
+    process -> labels[process -> labels_count++] = {new_value, *new_label};
 }
 
 
-int get_label_value(Program *program, String *label) {
-    for(int i = 0; i < program -> labels_count; i++) {
-        if (is_equal(&(program -> labels[i].name), label)) {
-            return (program -> labels)[i].value;
+int get_label_value(Process *process, String *label) {
+    for(int i = 0; i < process -> labels_count; i++) {
+        if (is_equal(&(process -> labels[i].name), label)) {
+            return (process -> labels)[i].value;
         }
     }
 
@@ -369,35 +355,35 @@ void print_string(String *str) {
 }
 
 
-int free_program(Program *program) {
-    if (!program -> code || !program -> labels) {
+int free_process(Process *process) {
+    if (!process -> code || !process -> labels) {
         printf("Failed to free memory due to null pointer!\n");
         return 1;
     }
 
-    free(program -> code);
-    program -> code = nullptr;
+    free(process -> code);
+    process -> code = nullptr;
 
-    free(program -> labels);
-    program -> labels = nullptr;
+    free(process -> labels);
+    process -> labels = nullptr;
 
-    program -> count = 0;
-    program -> ip = 0;
-    program -> labels_count = 0;
+    process -> count = 0;
+    process -> ip = 0;
+    process -> labels_count = 0;
 
     return  0;
 }
 
 
-void print_program(Program *program) {
-    printf("Operation count: %i\n", program -> count);
+void print_process(Process *process) {
+    printf("Operation count: %i\n", process -> count);
 
-    for(int i = 0; i < program -> count; i++)
-        printf("%i ", program -> code[i]);
+    for(int i = 0; i < process -> count; i++)
+        printf("%i ", process -> code[i]);
 
-    printf("\nLabels count: %i\n", program -> labels_count);
-    for(int i = 0; i < program -> labels_count; i++)
-        print_string(&program -> labels[i].name);
+    printf("\nLabels count: %i\n", process -> labels_count);
+    for(int i = 0; i < process -> labels_count; i++)
+        print_string(&process -> labels[i].name);
 }
 
 
@@ -465,7 +451,7 @@ int set_push_args(FILE *listing, int *code, int *ip, String *cmd) {
 }
 
 
-int set_jmp_args(FILE *listing, Program *program, int *code, int *ip, String *cmd) {
+int set_jmp_args(FILE *listing, Process *process, int *code, int *ip, String *cmd) {
     String arg = get_token(cmd -> str + cmd -> len, "[+]:", "#");
 
     if (!arg.str) return 1;
@@ -475,7 +461,7 @@ int set_jmp_args(FILE *listing, Program *program, int *code, int *ip, String *cm
     if (str_to_int(&arg, &value))
         code[(*ip)++] = value;
     else
-        code[(*ip)++] = get_label_value(program, &arg);
+        code[(*ip)++] = get_label_value(process, &arg);
 
     fprintf(listing, "%.4i %.8X %.4i        %s\n", *ip - 2, code[*ip - 2], code[*ip - 1], cmd -> str);
 
