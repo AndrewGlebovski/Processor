@@ -1,6 +1,6 @@
 DEF_CMD(HLT, 0, 0, 0)
 
-DEF_CMD(PUSH, 1, 1, set_push_args(listing, process -> code, &process -> ip, &cmd))
+DEF_CMD(PUSH, 1, 1, set_push_args(listing, process, process -> code, &process -> ip, &cmd))
 
 DEF_CMD(OUT, 2, 0, 0)
 
@@ -16,7 +16,7 @@ DEF_CMD(JMP, 7, 1, set_jmp_args(listing, process, process -> code, &process -> i
 
 DEF_CMD(DUP, 8, 0, 0)
 
-DEF_CMD(POP, 9, 1, set_push_args(listing, process -> code, &process -> ip, &cmd))
+DEF_CMD(POP, 9, 1, set_push_args(listing, process, process -> code, &process -> ip, &cmd))
 
 DEF_CMD(JB, 10, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd))
 

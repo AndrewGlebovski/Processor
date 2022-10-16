@@ -94,7 +94,7 @@ void print_process(Process *process);
  * \param [out] ip This instruction pointer will be moved
  * \param [in]  cmd Current command string
 */
-int set_push_args(FILE *listing, int *code, int *ip, String *cmd);
+int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *cmd);
 
 
 /**
@@ -201,6 +201,21 @@ int translate(Process *process, Text *text, FILE *listing) {
                         process -> labels[process -> labels_count++] = {process -> ip, cmd};
 
                     continue;
+                }
+
+                if (is_equal(&arg, "=")) {
+                    arg = get_token(arg.str + arg.len, "[+]:", "#");
+
+                    if (arg.str) {
+                        int value = 0;
+
+                        if (str_to_int(&arg, &value)) {
+                            if (get_label_value(process, &cmd) == -1)
+                                process -> labels[process -> labels_count++] = {value, cmd};
+                            
+                            continue;
+                        }
+                    }
                 }
             }
 
@@ -346,12 +361,14 @@ void print_process(Process *process) {
         printf("%i ", process -> code[i]);
 
     printf("\nLabels count: %i\n", process -> labels_count);
-    for(int i = 0; i < process -> labels_count; i++)
+    for(int i = 0; i < process -> labels_count; i++) {
         print_string(&process -> labels[i].name);
+        printf(" %i\n", process -> labels[i].value);
+    }
 }
 
 
-int set_push_args(FILE *listing, int *code, int *ip, String *cmd) {
+int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *cmd) {
     String arg = get_token(cmd -> str + cmd -> len, "[+]:", "#");
     int *flag = code + *ip - 1, value = 0;
 
@@ -365,7 +382,7 @@ int set_push_args(FILE *listing, int *code, int *ip, String *cmd) {
         if (!arg.str) return 1;
     }
 
-    if (str_to_int(&arg, &value)) {
+    if (str_to_int(&arg, &value) || (value = get_label_value(process, &arg)) != -1) {
         *flag |= BIT_CONST;
         code[(*ip)++] = value;
 
