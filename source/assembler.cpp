@@ -65,6 +65,14 @@ int get_label_value(Process *process, String *label);
 
 
 /**
+ * \brief Gets register index
+ * \param [in] name Register name
+ * \return Actual index or -1 if register not found
+*/
+int get_register_index(String *name);
+
+
+/**
  * \brief Free process memory
  * \param [in] process This process will be reinitialize
  * \return Non zero value means error
@@ -80,50 +88,24 @@ void print_process(Process *process);
 
 
 /**
- * \brief Finds token in string
- * \param [in] origin Search start pointer
- * \param [in] solo Solo delimeters
- * \param [in] extra Interpreted as end of line
- * \return Token pointer and size
+ * \brief Sets push arguments
+ * \param [out] listing File for listing
+ * \param [out] code Arguments will be written to this code
+ * \param [out] ip This instruction pointer will be moved
+ * \param [in]  cmd Current command string
 */
-String get_token(char *origin, const char *solo, const char *extra);
-
-
-/**
- * \brief Compares two strings structs
- * \param [in] str1 First string to compare
- * \param [in] str2 Second string to compare
- * \return Non zero value means equality
-*/
-int is_equal(String *str1, String *str2);
-
-
-/**
- * \brief Compares two strings structs
- * \param [in] str1 First string to compare
- * \param [in] str2 Second string to compare
- * \return Non zero value means equality
-*/
-int is_equal(String *str1, const char *str2);
-
-
-int str_to_int(String *str, int *value);
-
-
-/**
- * \brief Prints string
- * \param [in] str String to print
-*/
-void print_string(String *str);
-
-
 int set_push_args(FILE *listing, int *code, int *ip, String *cmd);
 
 
+/**
+ * \brief Sets jmp arguments
+ * \param [out] listing File for listing
+ * \param [in] program For label search
+ * \param [out] code Arguments will be written to this code
+ * \param [out] ip This instruction pointer will be moved
+ * \param [in]  cmd Current command string
+*/
 int set_jmp_args(FILE *listing, Process *process, int *code, int *ip, String *cmd);
-
-
-int get_register_index(String *name);
 
 
 
@@ -334,7 +316,6 @@ int get_register_index(String *name) {
 void print_string(String *str) {
     for(int i = 0; i < str -> len; i++)
         putchar(str -> str[i]);
-    putchar('\n');
 }
 
 
