@@ -93,7 +93,8 @@ int main() {
 
     // print_process(&process);
 
-    execute(&process);
+    if (execute(&process))
+        print_process(&process);
 
     // print_process(&process);
 
@@ -121,7 +122,7 @@ int execute(Process *process) {
 
         switch(cmd & 0XFFFFFF) {
             case CMD_HLT: {
-                stack_dump(stack, 0, stdout);
+                // stack_dump(stack, 0, stdout);
                 stack_destructor(stack);
                 stack_destructor(call_stack);
                 return 0;
@@ -372,15 +373,23 @@ void print_process(Process *process) {
     for(int i = 0; i < process -> count; i++)
         printf("%i ", process -> code[i]);
 
-    putchar('\n');
+    printf("\nRegister:\n");
 
     for(size_t i = 0; i < sizeof(process -> reg) / sizeof(*process -> reg); i++)
         printf("%i ", process -> reg[i]);
 
-    putchar('\n');
+    printf("\nRam:\n");
 
     for(size_t i = 0; i < sizeof(process -> ram) / sizeof(*process -> ram); i++)
         printf("%i ", process -> ram[i]);
 
-    putchar('\n');
+    printf("\nValue stack:\n");
+
+    stack_dump(&process -> value_stack, stack_check(&process -> value_stack), stdout);
+    
+    printf("Call stack:\n");
+    
+    stack_dump(&process -> call_stack, stack_check(&process -> call_stack), stdout);
+
+    fflush(stdout);
 }
