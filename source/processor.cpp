@@ -132,14 +132,14 @@ int execute(Process *process) {
             case CMD_OUT: {
                 int value = 0;
                 STACK_POP(stack, &value, *ip);
-                printf("%i\n", value);
+                printf("%.3f\n", (float) value / 1000);
                 break;
             }
 
             case CMD_PUSH: {
                 if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
                 if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++] - 1]; // FORGOT TO DECREMENT ARGUMENT
-                if (cmd & BIT_MEM) arg = ram[arg];
+                if (cmd & BIT_MEM) arg = ram[arg / 1000];
 
                 STACK_PUSH(stack, arg, *ip);
                 break;
@@ -149,6 +149,8 @@ int execute(Process *process) {
                 if (cmd & BIT_MEM) {
                     if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
                     if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++] - 1]; // ADD REGISTER INDEX CHECK
+
+                    arg /= 1000;
 
                     if (arg < 0 || arg > (int) (sizeof(process -> ram) / sizeof(*process -> ram)) - 1) {
                         printf("Segmentation fault! Wrong RAM index in operation %i!\n", *ip);
@@ -203,7 +205,7 @@ int execute(Process *process) {
                 int val1 = 0, val2 = 0;
                 STACK_POP(stack, &val1, *ip);
                 STACK_POP(stack, &val2, *ip);
-                STACK_PUSH(stack, val2 * val1, *ip);
+                STACK_PUSH(stack, val2 * val1 / 1000, *ip);
                 break;
             }
 
@@ -216,7 +218,7 @@ int execute(Process *process) {
                     return 1;
                 }
 
-                STACK_PUSH(stack, (int) sqrt(val), *ip);
+                STACK_PUSH(stack, (int) (sqrt((float)val / 1000) * 1000), *ip);
                 break;
             }
 
@@ -230,7 +232,7 @@ int execute(Process *process) {
                     return 1;
                 }
 
-                STACK_PUSH(stack, val2 / val1, *ip);
+                STACK_PUSH(stack, val2 / val1 * 1000, *ip);
                 break;
             }
 
