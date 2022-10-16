@@ -10,31 +10,12 @@
 #include "command.hpp"
 
 
-/// Sets operation code and prints that to the listing file
-#define SET_OPERATION(CMD) \
-do { \
-    (program -> code)[program -> ip++] = CMD; \
-    fprintf(listing, "%.4i %.8X             %s\n", program -> ip - 1, CMD, (text -> lines)[i].str); \
-} while(0)
-
-
-/// Sets operation code and arg and prints that to the listing file
-#define SET_OPERATION_AND_ARG(CMD, ARG) \
-do { \
-    (program -> code)[program -> ip++] = CMD; \
-    (program -> code)[program -> ip++] = ARG; \
-    fprintf(listing, "%.4i %.8X % .4i       %s\n", program -> ip - 2, CMD, ARG, (text -> lines)[i].str); \
-} while(0)
-
-
-/// Sets operation code and args and prints that to the listing file
-#define SET_OPERATION_AND_ARGS(CMD, ARG1, ARG2) \
-do { \
-    (program -> code)[program -> ip++] = CMD; \
-    (program -> code)[program -> ip++] = ARG1; \
-    (program -> code)[program -> ip++] = ARG2; \
-    fprintf(listing, "%.4i %.8X % .4i % .4i %s\n", program -> ip - 3, CMD, ARG1, ARG2, (text -> lines)[i].str); \
-} while(0)
+const char *REGISTERS[] = {
+    "RAX",
+    "RBX",
+    "RCX",
+    "RDX"
+};
 
 
 /// Contains information about label
@@ -111,9 +92,10 @@ void print_program(Program *program);
  * \brief Finds token in string
  * \param [in] origin Search start pointer
  * \param [in] solo Solo delimeters
+ * \param [in] extra Interpreted as end of line
  * \return Token pointer and size
 */
-String get_token(char *origin, const char *solo);
+String get_token(char *origin, const char *solo, const char *extra);
 
 
 /**
@@ -144,10 +126,13 @@ int str_to_int(String *str, int *value);
 void print_string(String *str);
 
 
-int set_push_args(FILE *listing, Program *program, int *code, int *ip, String *cmd);
+int set_push_args(FILE *listing, int *code, int *ip, String *cmd);
 
 
 int set_jmp_args(FILE *listing, Program *program, int *code, int *ip, String *cmd);
+
+
+int get_register_index(String *name);
 
 
 
@@ -171,10 +156,10 @@ int main() {
     */
    /*
     for(int i = 0; i < text.size; i++) {
-        String str = get_token(text.lines[i].str, "[+]:");
+        String str = get_token(text.lines[i].str, "[+]:", "#");
         while(str.len != -1) {
             print_string(&str);
-            str = get_token(str.str + str.len, "[+]:");
+            str = get_token(str.str + str.len, "[+]:", "#");
         }
     }
     */
@@ -243,13 +228,13 @@ int translate(Program *program, Text *text, FILE *listing) {
     program -> ip = 0;
 
     for(int i = 0; text -> lines[i].str != nullptr && text -> lines[i].len != -1; i++) {
-        String cmd = get_token(text -> lines[i].str, "[+]:");
+        String cmd = get_token(text -> lines[i].str, "[+]:", "#");
 
         if (!cmd.str) continue;
 
         #include "cmd.hpp"
         /*else*/ {
-            String arg = get_token(cmd.str + cmd.len, "[+]:");
+            String arg = get_token(cmd.str + cmd.len, "[+]:", "#");
 
             if (!arg.str) return 1;
 
@@ -347,7 +332,7 @@ int str_to_int(String *str, int *value) {
 }
 
 
-String get_token(char *origin, const char *solo) {
+String get_token(char *origin, const char *solo, const char *extra) {
     String token = {origin, 1};
 
     while (isspace(*token.str)) token.str++;
@@ -362,7 +347,18 @@ String get_token(char *origin, const char *solo) {
     else if (isdigit(*token.str) || *token.str == '-')
         while (isdigit(*(token.str + token.len))) token.len++;
 
+    if (strchr(extra, *token.str)) return {nullptr, -1};
+
     return token;
+}
+
+
+int get_register_index(String *name) {
+    for(size_t i = 0; i < sizeof(REGISTERS) / sizeof(*REGISTERS); i++) {
+        if (is_equal(name, REGISTERS[i])) return (int) i + 1;
+    }
+
+    return -1;
 }
 
 
@@ -405,52 +401,72 @@ void print_program(Program *program) {
 }
 
 
-int set_push_args(FILE *listing, Program *program, int *code, int *ip, String *cmd) {
-    fprintf(listing, "%.4i %.8X             %s\n", *ip, code[*ip], cmd -> str);
-    return 0;
-    /*
-    if (!arg.str) {
-        printf("Wrong argument in line %i!\n", i);
-        return 1;
-    }
+int set_push_args(FILE *listing, int *code, int *ip, String *cmd) {
+    String arg = get_token(cmd -> str + cmd -> len, "[+]:", "#");
+    int *flag = code + *ip - 1, value = 0;
+
+    if (!arg.str) return 1;
 
     if (is_equal(&arg, "[")) {
-        arg = get_token(arg.str + arg.len, "[+]:");
-        int flag = CMD_PUSH, arg1 = 0, arg2 = 0; 
+        *flag |= BIT_MEM;
 
-        while (!arg.str) {
-            if (is_equal(&arg, "]")) {
-                break;
-            }
+        arg = get_token(arg.str + arg.len, "[+]:", "#");
 
-            else if (is_equal(&arg, "+")) {
+        if (!arg.str) return 1;
+    }
 
-            }
+    if (str_to_int(&arg, &value)) {
+        *flag |= BIT_CONST;
+        code[(*ip)++] = value;
 
-            else {
-                int value = get_label_value(program, &arg);
+        arg = get_token(arg.str + arg.len, "[+]:", "#");
 
-                if (value > -1) {
-                    arg2 = value;
-                    flag |= BIT_REG;
-                }
-                else {
-                    arg2 = str_to_int(&arg);
-                    flag |= BIT_CONST;
-                }
-            }
+        if (!arg.str) {
+            fprintf(listing, "%.4i %.8X %.4i        %s\n", *ip - 2, *flag, code[*ip - 1], cmd -> str);
 
-            arg = get_token(arg.str + arg.len, "[+]:");
+            return (*flag & BIT_MEM);
         }
     }
 
-    fprintf(listing, "%.4i %.8X %.4i        %s\n", program -> ip - 2, program -> code[program -> ip - 2], text -> lines[i].str);
-    */
+    if (is_equal(&arg, "+")) {
+        arg = get_token(arg.str + arg.len, "[+]:", "#");
+
+        if (!arg.str || is_equal(&arg, "]")) return 1;
+    }
+
+    if ((value = get_register_index(&arg)) != -1) {
+        *flag |= BIT_REG;
+        code[(*ip)++] = value;
+
+        arg = get_token(arg.str + arg.len, "[+]:", "#");
+
+        if (!arg.str) {
+            if (*flag & BIT_CONST)
+                fprintf(listing, "%.4i %.8X %.4i  %.4i  %s\n", *ip - 3, *flag, code[*ip - 2], code[*ip - 1], cmd -> str);
+            else
+                fprintf(listing, "%.4i %.8X %.4i        %s\n", *ip - 2, *flag, code[*ip - 1], cmd -> str);
+
+            return (*flag & BIT_MEM);
+        }
+    }
+
+    if (is_equal(&arg, "]") && *flag & BIT_MEM) {
+        if (*flag & BIT_CONST && *flag & BIT_REG) 
+            fprintf(listing, "%.4i %.8X %.4i  %.4i  %s\n", *ip - 3, *flag, code[*ip - 2], code[*ip - 1], cmd -> str);
+        else if (*flag & BIT_CONST || *flag & BIT_REG)
+            fprintf(listing, "%.4i %.8X %.4i        %s\n", *ip - 2, *flag, code[*ip - 1], cmd -> str);
+        else
+            return 1;
+
+        return 0;
+    }
+
+    return 1;
 }
 
 
 int set_jmp_args(FILE *listing, Program *program, int *code, int *ip, String *cmd) {
-    String arg = get_token(cmd -> str + cmd -> len, "[+]:");
+    String arg = get_token(cmd -> str + cmd -> len, "[+]:", "#");
 
     if (!arg.str) return 1;
 

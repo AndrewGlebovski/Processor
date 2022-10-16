@@ -46,8 +46,8 @@ typedef struct {
     Stack value_stack = {}; ///< Contains values 
     Stack call_stack = {}; ///< Function backtrace
 
-    int reg[4] = {}; ///< Process REGISTER
-    int ram[100] = {}; ///< Process RAM
+    int reg[4] = {0}; ///< Process REGISTER
+    int ram[100] = {0}; ///< Process RAM
 } Process;
 
 
@@ -82,6 +82,8 @@ int main() {
 
     Process process = {};
 
+    // print_process(&process);
+
     stack_constructor(&process.value_stack, 32);
     stack_constructor(&process.call_stack, 32);
 
@@ -89,9 +91,11 @@ int main() {
 
     close(input);
 
-    print_process(&process);
+    // print_process(&process);
 
     execute(&process);
+
+    // print_process(&process);
 
     free(process.code);
 
@@ -132,7 +136,7 @@ int execute(Process *process) {
 
             case CMD_PUSH: {
                 if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
-                if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++]];
+                if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++] - 1]; // FORGOT TO DECREMENT ARGUMENT
                 if (cmd & BIT_MEM) arg = ram[arg];
 
                 STACK_PUSH(stack, arg, *ip);
@@ -142,9 +146,9 @@ int execute(Process *process) {
             case CMD_POP: {
                 if (cmd & BIT_MEM) {
                     if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
-                    if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++]];
+                    if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++] - 1]; // ADD REGISTER INDEX CHECK
 
-                    if (arg < 0 || arg > 99) {
+                    if (arg < 0 || arg > (int) (sizeof(process -> ram) / sizeof(*process -> ram)) - 1) {
                         printf("Segmentation fault! Wrong RAM index in operation %i!\n", *ip);
                         return 1;
                     }
@@ -158,7 +162,7 @@ int execute(Process *process) {
                 else if (cmd & BIT_REG) {
                     arg = (process -> code)[(*ip)++];
 
-                    if (arg < 1 || arg > 4) {
+                    if (arg < 1 || arg > (int) (sizeof(process -> reg) / sizeof(*process -> reg))) {
                         printf("Segmentation fault! Wrong register index in operation %i!\n", *ip);
                         return 1;
                     }
@@ -367,6 +371,16 @@ void print_process(Process *process) {
 
     for(int i = 0; i < process -> count; i++)
         printf("%i ", process -> code[i]);
+
+    putchar('\n');
+
+    for(size_t i = 0; i < sizeof(process -> reg) / sizeof(*process -> reg); i++)
+        printf("%i ", process -> reg[i]);
+
+    putchar('\n');
+
+    for(size_t i = 0; i < sizeof(process -> ram) / sizeof(*process -> ram); i++)
+        printf("%i ", process -> ram[i]);
 
     putchar('\n');
 }
