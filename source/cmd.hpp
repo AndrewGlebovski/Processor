@@ -29,3 +29,5 @@ DEF_CMD(JNE, 13, 1, set_jmp_args(listing, process, process -> code, &process -> 
 DEF_CMD(CALL, 14, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd))
 
 DEF_CMD(RET, 15, 0, 0)
+
+DEF_CMD(SQRT, 16, 0, 0)

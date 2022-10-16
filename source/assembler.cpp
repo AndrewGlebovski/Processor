@@ -195,13 +195,13 @@ int translate(Process *process, Text *text, FILE *listing) {
         /*else*/ {
             String arg = get_token(cmd.str + cmd.len, "[+]:", "#");
 
-            if (!arg.str) return 1;
+            if (arg.str) {
+                if (is_equal(&arg, ":")) {
+                    if (get_label_value(process, &cmd) == -1)
+                        process -> labels[process -> labels_count++] = {process -> ip, cmd};
 
-            if (is_equal(&arg, ":")) {
-                if (get_label_value(process, &cmd) == -1)
-                    process -> labels[process -> labels_count++] = {process -> ip, cmd};
-
-                continue;
+                    continue;
+                }
             }
 
             printf("Unknown command in line %i!\n", i + 1);
