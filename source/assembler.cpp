@@ -134,7 +134,7 @@ int is_equal(String *str1, String *str2);
 int is_equal(String *str1, const char *str2);
 
 
-int str_to_int(String *str);
+int str_to_int(String *str, int *value);
 
 
 /**
@@ -142,6 +142,12 @@ int str_to_int(String *str);
  * \param [in] str String to print
 */
 void print_string(String *str);
+
+
+int set_push_args(FILE *listing, int *code, int *ip, String *cmd);
+
+
+int set_jmp_args(FILE *listing, int *code, int *ip, String *cmd);
 
 
 
@@ -213,7 +219,10 @@ int main() {
     if (is_equal(&cmd, #name)) { \
         program -> code[program -> ip++] = num; \
         if (arg) { \
-            action; \
+            if (action) { \
+                printf("Wrong argument in line %i!\n", i + 1); \
+                return 1; \
+            } \
         } \
         else { \
             fprintf(listing, "%.4i %.8X             %s\n", program -> ip - 1, num, text -> lines[i].str); \
@@ -251,6 +260,8 @@ int translate(Program *program, Text *text, FILE *listing) {
             return 1;
         }
     }
+
+    program -> count = program -> ip;
 
     return 0;
 }
@@ -323,14 +334,14 @@ int is_equal(String *str1, const char *str2) {
 }
 
 
-int str_to_int(String *str) {
+int str_to_int(String *str, int *value) {
     char c = *(str -> str + str -> len);
 
-    int value = atoi(str -> str);
+    int result = sscanf(str -> str, "%i", value);
 
     *(str -> str + str -> len) = c;
 
-    return value;
+    return result;
 }
 
 
@@ -346,7 +357,7 @@ String get_token(char *origin, const char *solo) {
     else if (isalpha(*token.str))
         while (isalnum(*(token.str + token.len))) token.len++;
 
-    else if (isdigit(*token.str) || *token.str == '+' || *token.str == '-')
+    else if (isdigit(*token.str) || *token.str == '-')
         while (isdigit(*(token.str + token.len))) token.len++;
 
     return token;
@@ -389,4 +400,64 @@ void print_program(Program *program) {
     printf("\nLabels count: %i\n", program -> labels_count);
     for(int i = 0; i < program -> labels_count; i++)
         print_string(&program -> labels[i].name);
+}
+
+
+int set_push_args(FILE *listing, int *code, int *ip, String *cmd) {
+    fprintf(listing, "%.4i %.8X             %s\n", *ip, code[*ip], cmd -> str);
+    return 0;
+    /*
+    if (!arg.str) {
+        printf("Wrong argument in line %i!\n", i);
+        return 1;
+    }
+
+    if (is_equal(&arg, "[")) {
+        arg = get_token(arg.str + arg.len, "[+]:");
+        int flag = CMD_PUSH, arg1 = 0, arg2 = 0; 
+
+        while (!arg.str) {
+            if (is_equal(&arg, "]")) {
+                break;
+            }
+
+            else if (is_equal(&arg, "+")) {
+
+            }
+
+            else {
+                int value = get_label_value(program, &arg);
+
+                if (value > -1) {
+                    arg2 = value;
+                    flag |= BIT_REG;
+                }
+                else {
+                    arg2 = str_to_int(&arg);
+                    flag |= BIT_CONST;
+                }
+            }
+
+            arg = get_token(arg.str + arg.len, "[+]:");
+        }
+    }
+
+    fprintf(listing, "%.4i %.8X %.4i        %s\n", program -> ip - 2, program -> code[program -> ip - 2], text -> lines[i].str);
+    */
+}
+
+
+int set_jmp_args(FILE *listing, int *code, int *ip, String *cmd) {
+    fprintf(listing, "%.4i %.8X             %s\n", *ip, code[*ip], cmd -> str);
+    return 0;
+    /*
+    int value = get_label_value(program, &arg);
+
+    if (value > -1)
+        program -> code[program -> ip++] = value;
+    else {
+        value = str_to_int(&arg);
+        program -> code[program -> ip--] = value;
+    }
+    */
 }
