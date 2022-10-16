@@ -11,7 +11,7 @@ BIN_DIR=binary
 SRC_DIR=source
 
 
-all: processor
+all: processor assembler
 
 
 # Завершает сборку ассемблера
