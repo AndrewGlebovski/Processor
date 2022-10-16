@@ -56,15 +56,6 @@ int write_file(int file, Process *process);
 
 
 /**
- * \brief Inserts label if it does not exist
- * \param [in] process Process to insert label
- * \param [in] new_label This label will be inserted
- * \note It's impossible to redefine value of label
-*/
-void insert_label(Process *process, String *new_label, int new_value);
-
-
-/**
  * \brief Gets label value
  * \param [in] process Process to search label in
  * \param [in] label_name Label with this name will be searched
@@ -225,7 +216,9 @@ int translate(Process *process, Text *text, FILE *listing) {
             if (!arg.str) return 1;
 
             if (is_equal(&arg, ":")) {
-                insert_label(process, &cmd, process -> ip);
+                if (get_label_value(process, &cmd) == -1)
+                    process -> labels[process -> labels_count++] = {process -> ip, cmd};
+
                 continue;
             }
 
@@ -264,16 +257,6 @@ int write_file(int file, Process *process) {
     }
 
     return 0;
-}
-
-
-void insert_label(Process *process, String *new_label, int new_value) {
-    for(int i = 0; i < process -> labels_count; i++) {
-        if (is_equal(&(process -> labels[i].name), new_label))
-            return;
-    }
-
-    process -> labels[process -> labels_count++] = {new_value, *new_label};
 }
 
 
