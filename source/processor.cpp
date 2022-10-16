@@ -2,6 +2,7 @@
 #include <io.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <math.h>
 #include "stack.hpp"
 #include "command.hpp"
 
@@ -203,6 +204,19 @@ int execute(Process *process) {
                 STACK_POP(stack, &val1, *ip);
                 STACK_POP(stack, &val2, *ip);
                 STACK_PUSH(stack, val2 * val1, *ip);
+                break;
+            }
+
+            case CMD_SQRT: {
+                int val = 0;
+                STACK_POP(stack, &val, *ip);
+
+                if (val < 0) {
+                    printf("Negative number under root %i!\n", *ip);
+                    return 1;
+                }
+
+                STACK_PUSH(stack, (int) sqrt(val), *ip);
                 break;
             }
 
