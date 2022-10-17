@@ -262,19 +262,9 @@ int get_label_value(Process *process, String *label) {
 
 
 int str_to_int(String *str, int *value) {
-    char c = *(str -> str + str -> len);
-
-    float arg = 0;
-
-    int result = sscanf(str -> str, "%f%n", &arg, value);
-
-    if (*value != str -> len) return 0;
-
-    *value = (int)(arg * 1000);
-
-    *(str -> str + str -> len) = c;
-
-    return result;
+    char *end = nullptr;
+    *value = (int)(strtod(str -> str, &end) * 1000);
+    return (end == str -> str + str -> len);
 }
 
 
