@@ -31,3 +31,5 @@ DEF_CMD(CALL, 14, 1, set_jmp_args(listing, process, process -> code, &process ->
 DEF_CMD(RET, 15, 0, 0)
 
 DEF_CMD(SQRT, 16, 0, 0)
+
+DEF_CMD(IN, 17, 0, 0)

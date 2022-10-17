@@ -128,6 +128,19 @@ int execute(Process *process) {
                 stack_destructor(call_stack);
                 return 0;
             }
+
+            case CMD_IN: {
+                float value = 0;
+
+                if (!scanf("%f", &value)) {
+                    printf("Wrong argument given!\n");
+                    return 1;
+                }
+
+                STACK_PUSH(stack, (int)(value * 1000), process -> ip);
+
+                break;
+            }
             
             case CMD_OUT: {
                 int value = 0;
