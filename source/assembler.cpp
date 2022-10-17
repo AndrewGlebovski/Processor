@@ -263,7 +263,7 @@ int get_label_value(Process *process, String *label) {
 
 int str_to_int(String *str, int *value) {
     char *end = nullptr;
-    *value = (int)(strtod(str -> str, &end) * 1000);
+    *value = (int)(strtod(str -> str, &end) * PRECISION);
     return (end == str -> str + str -> len);
 }
 

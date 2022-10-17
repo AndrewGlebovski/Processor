@@ -14,3 +14,7 @@ typedef enum {
     BIT_REG   = 0x2000000, ///< Register bit
     BIT_MEM   = 0x4000000, ///< Memory bit
 } ARG_TYPE;
+
+
+/// Real number precision
+const int PRECISION = 1000;
