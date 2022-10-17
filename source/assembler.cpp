@@ -283,7 +283,7 @@ int is_equal(String *str1, const char *str2) {
         if (tolower(str1 -> str[i]) != tolower(str2[i])) 
             return 0;
     
-    return 1;
+    return str1 -> len == (int) strlen(str2);
 }
 
 
@@ -292,7 +292,9 @@ int str_to_int(String *str, int *value) {
 
     float arg = 0;
 
-    int result = sscanf(str -> str, "%f", &arg);
+    int result = sscanf(str -> str, "%f%n", &arg, value);
+
+    if (*value != str -> len) return 0;
 
     *value = (int)(arg * 1000);
 
@@ -312,7 +314,7 @@ String get_token(char *origin, const char *solo, const char *extra) {
     if (strchr(solo, *token.str)) return token;
 
     else if (isalpha(*token.str))
-        while (isalnum(*(token.str + token.len))) token.len++;
+        while (isalnum(*(token.str + token.len)) || *(token.str + token.len) == '_') token.len++;
 
     else if (isdigit(*token.str) || *token.str == '-')
         while (isdigit(*(token.str + token.len)) || *(token.str + token.len) == '.') token.len++;

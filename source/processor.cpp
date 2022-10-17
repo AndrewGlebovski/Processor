@@ -232,7 +232,7 @@ int execute(Process *process) {
                     return 1;
                 }
 
-                STACK_PUSH(stack, val2 / val1 * 1000, *ip);
+                STACK_PUSH(stack, (int)((float)val2 / (float)val1 * 1000), *ip);
                 break;
             }
 
