@@ -38,35 +38,9 @@ String get_token(char *origin, const char *solo, const char *extra);
 
 
 /**
- * \brief Compares two strings structs
- * \param [in] str1 First string to compare
- * \param [in] str2 Second string to compare
- * \return Non zero value means equality
-*/
-int is_equal(String *str1, String *str2);
-
-
-/**
- * \brief Compares two strings structs
- * \param [in] str1 First string to compare
- * \param [in] str2 Second string to compare
- * \warning Compares first str1.len symbols from str1 and str2
- * \return Non zero value means equality
-*/
-int is_equal(String *str1, const char *str2);
-
-
-/**
  * \brief Converts string in number
  * \param [in] str String to converts
  * \param [in] value Expected integer value
  * \return Non zero value means unconvertable string
 */
 int str_to_int(String *str, int *value);
-
-
-/**
- * \brief Prints string based on it's length field
- * \param [in] str String to print
-*/
-void print_string(String *str);

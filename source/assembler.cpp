@@ -82,9 +82,10 @@ int free_process(Process *process);
 
 /**
  * \brief Prints all information about process
- * \param [in] process Process to print
+ * \param [in]  process Process to print
+ * \param [out] stream Output file
 */
-void print_process(Process *process);
+void print_process(Process *process, FILE *stream);
 
 
 /**
@@ -93,6 +94,7 @@ void print_process(Process *process);
  * \param [out] code Arguments will be written to this code
  * \param [out] ip This instruction pointer will be moved
  * \param [in]  cmd Current command string
+ * \return Non zero value means error
 */
 int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *cmd);
 
@@ -100,12 +102,22 @@ int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *c
 /**
  * \brief Sets jmp arguments
  * \param [out] listing File for listing
- * \param [in] program For label search
+ * \param [in] process For label search
  * \param [out] code Arguments will be written to this code
  * \param [out] ip This instruction pointer will be moved
  * \param [in]  cmd Current command string
+ * \return Non zero value means error
 */
 int set_jmp_args(FILE *listing, Process *process, int *code, int *ip, String *cmd);
+
+
+/**
+ * \brief Inserts new label
+ * \param [in] process For label search
+ * \param [in] cmd Current command string
+ * \return Non zero value means error
+*/
+int set_label_value(Process *process, String *cmd);
 
 
 
@@ -139,6 +151,11 @@ int main() {
     if (translate(&process, &text, listing))
         return 1;
 
+    fprintf(listing, "\nProcess\n");
+    print_process(&process, listing);
+
+    fclose(listing);
+
     int output = open("debug/binary.txt", O_WRONLY | O_CREAT | O_BINARY);
 
     if (output == -1) {
@@ -160,7 +177,7 @@ int main() {
 
 
 #define DEF_CMD(name, num, arg, action) \
-    if (is_equal(&cmd, #name)) { \
+    if (!strnicmp(cmd.str, #name, cmd.len)) { \
         process -> code[process -> ip++] = num; \
         if (arg) { \
             if (action) { \
@@ -192,33 +209,7 @@ int translate(Process *process, Text *text, FILE *listing) {
         if (!cmd.str) continue;
 
         #include "cmd.hpp"
-        /*else*/ {
-            String arg = get_token(cmd.str + cmd.len, "[+]:", "#");
-
-            if (arg.str) {
-                if (is_equal(&arg, ":")) {
-                    if (get_label_value(process, &cmd) == -1)
-                        process -> labels[process -> labels_count++] = {process -> ip, cmd};
-
-                    continue;
-                }
-
-                if (is_equal(&arg, "=")) {
-                    arg = get_token(arg.str + arg.len, "[+]:", "#");
-
-                    if (arg.str) {
-                        int value = 0;
-
-                        if (str_to_int(&arg, &value)) {
-                            if (get_label_value(process, &cmd) == -1)
-                                process -> labels[process -> labels_count++] = {value, cmd};
-                            
-                            continue;
-                        }
-                    }
-                }
-            }
-
+        /*else*/ if (set_label_value(process, &cmd)) {
             printf("Unknown command in line %i!\n", i + 1);
             return 1;
         }
@@ -259,31 +250,14 @@ int write_file(int file, Process *process) {
 
 int get_label_value(Process *process, String *label) {
     for(int i = 0; i < process -> labels_count; i++) {
-        if (is_equal(&(process -> labels[i].name), label)) {
-            return (process -> labels)[i].value;
-        }
+        if (process -> labels[i].name.len != label -> len)
+            continue;
+
+        if (!strnicmp(process -> labels[i].name.str, label -> str, label -> len))
+            return process -> labels[i].value;
     }
 
     return -1;
-}
-
-
-int is_equal(String *str1, String *str2) {
-    if (str1 -> len != str2 -> len) return 0;
-    for(int i = 0; i < str1 -> len; i++)
-        if (tolower(str1 -> str[i]) != tolower(str2 -> str[i])) 
-            return 0;
-    
-    return 1;
-}
-
-
-int is_equal(String *str1, const char *str2) {
-    for(int i = 0; i < str1 -> len; i++)
-        if (tolower(str1 -> str[i]) != tolower(str2[i])) 
-            return 0;
-    
-    return str1 -> len == (int) strlen(str2);
 }
 
 
@@ -327,16 +301,10 @@ String get_token(char *origin, const char *solo, const char *extra) {
 
 int get_register_index(String *name) {
     for(size_t i = 0; i < sizeof(REGISTERS) / sizeof(*REGISTERS); i++) {
-        if (is_equal(name, REGISTERS[i])) return (int) i + 1;
+        if (!strnicmp(name -> str, REGISTERS[i], name -> len)) return (int) i + 1;
     }
 
     return -1;
-}
-
-
-void print_string(String *str) {
-    for(int i = 0; i < str -> len; i++)
-        putchar(str -> str[i]);
 }
 
 
@@ -360,17 +328,16 @@ int free_process(Process *process) {
 }
 
 
-void print_process(Process *process) {
-    printf("Operation count: %i\n", process -> count);
+void print_process(Process *process, FILE *stream) {
+    fprintf(stream, "Operation count: %i\n", process -> count);
 
     for(int i = 0; i < process -> count; i++)
-        printf("%i ", process -> code[i]);
+        fprintf(stream, "%i ", process -> code[i]);
 
-    printf("\nLabels count: %i\n", process -> labels_count);
-    for(int i = 0; i < process -> labels_count; i++) {
-        print_string(&process -> labels[i].name);
-        printf(" %i\n", process -> labels[i].value);
-    }
+    fprintf(stream, "\nLabels count: %i\n", process -> labels_count);
+
+    for(int i = 0; i < process -> labels_count; i++)
+        fprintf(stream, "%.*s %i\n", process -> labels[i].name.len, process -> labels[i].name.str, process -> labels[i].value);
 }
 
 
@@ -380,7 +347,7 @@ int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *c
 
     if (!arg.str) return 1;
 
-    if (is_equal(&arg, "[")) {
+    if (!strnicmp(arg.str, "[", arg.len)) {
         *flag |= BIT_MEM;
 
         arg = get_token(arg.str + arg.len, "[+]:", "#");
@@ -401,10 +368,10 @@ int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *c
         }
     }
 
-    if (is_equal(&arg, "+")) {
+    if (!strnicmp(arg.str, "+", arg.len)) {
         arg = get_token(arg.str + arg.len, "[+]:", "#");
 
-        if (!arg.str || is_equal(&arg, "]")) return 1;
+        if (!arg.str || !strnicmp(arg.str, "]", arg.len)) return 1;
     }
 
     if ((value = get_register_index(&arg)) != -1) {
@@ -423,11 +390,13 @@ int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *c
         }
     }
 
-    if (is_equal(&arg, "]") && *flag & BIT_MEM) {
-        if (*flag & BIT_CONST && *flag & BIT_REG) 
+    if (!strnicmp(arg.str, "]", arg.len) && (*flag & BIT_MEM)) {
+        if ((*flag & BIT_CONST) && (*flag & BIT_REG)) 
             fprintf(listing, "%.4i %.8X %.4i  %.4i  %s\n", *ip - 3, *flag, code[*ip - 2], code[*ip - 1], cmd -> str);
-        else if (*flag & BIT_CONST || *flag & BIT_REG)
+        
+        else if ((*flag & BIT_CONST) || (*flag & BIT_REG))
             fprintf(listing, "%.4i %.8X %.4i        %s\n", *ip - 2, *flag, code[*ip - 1], cmd -> str);
+        
         else
             return 1;
 
@@ -453,4 +422,36 @@ int set_jmp_args(FILE *listing, Process *process, int *code, int *ip, String *cm
     fprintf(listing, "%.4i %.8X %.4i        %s\n", *ip - 2, code[*ip - 2], code[*ip - 1], cmd -> str);
 
     return 0;
+}
+
+
+int set_label_value(Process *process, String *cmd) {
+    String arg = get_token(cmd -> str + cmd -> len, "[+]:", "#");
+
+    if (arg.str) {
+        if (!strnicmp(arg.str, ":", arg.len)) {
+
+            if (get_label_value(process, cmd) == -1)
+                process -> labels[process -> labels_count++] = {process -> ip, *cmd};
+
+            return 0;
+        }
+
+        else if (!strnicmp(arg.str, "=", arg.len)) {
+            arg = get_token(arg.str + arg.len, "[+]:", "#");
+
+            if (arg.str) {
+                int value = 0;
+
+                if (str_to_int(&arg, &value)) {
+                    if (get_label_value(process, cmd) == -1)
+                        process -> labels[process -> labels_count++] = {value, *cmd};
+                            
+                    return 0;
+                }
+            }
+        }
+    }
+
+    return 1;
 }
