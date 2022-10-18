@@ -112,8 +112,8 @@ int main() {
 }
 
 
-#define DEF_CMD(name, num, arg, action, ...) \
-    case num: { \
+#define DEF_CMD(name, arg, action, ...) \
+    case CMD_##name: { \
         __VA_ARGS__ \
         break; \
     }

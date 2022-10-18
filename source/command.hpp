@@ -1,5 +1,5 @@
-#define DEF_CMD(name, num, ...) \
-    CMD_##name = num,
+#define DEF_CMD(name, ...) \
+    CMD_##name,
 
 /// List of commands
 typedef enum {

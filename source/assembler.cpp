@@ -203,9 +203,9 @@ int main(int argc, char *argv[]) {
 }
 
 
-#define DEF_CMD(name, num, arg, action, ...) \
+#define DEF_CMD(name, arg, action, ...) \
     if (!strnicmp(cmd.str, #name, cmd.len)) { \
-        process -> code[process -> ip++] = num; \
+        process -> code[process -> ip++] = CMD_##name; \
         if (arg) { \
             if (action) { \
                 printf("Wrong argument in line %i!\n", i + 1); \
@@ -213,7 +213,7 @@ int main(int argc, char *argv[]) {
             } \
         } \
         else { \
-            fprintf(listing, "%.4i %.8X             %s\n", process -> ip - 1, num, text -> lines[i].str); \
+            fprintf(listing, "%.4i %.8X             %s\n", process -> ip - 1, CMD_##name, text -> lines[i].str); \
         } \
         continue; \
     } \
