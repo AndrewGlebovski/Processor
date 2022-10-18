@@ -178,6 +178,9 @@ int main(int argc, char *argv[]) {
     if (translate(&process, &text, listing))
         return 1;
 
+    process.code = (int *) realloc(process.code, process.count * sizeof(int));
+    process.labels = (Label *) realloc(process.labels, process.labels_count * sizeof(Label));
+
     fprintf(listing, "\nSecond pass\n");
     if (translate(&process, &text, listing))
         return 1;
