@@ -16,7 +16,7 @@ all: processor assembler
 
 # Завершает сборку ассемблера
 assembler: $(BIN_DIR)/assembler.o
-	$(COMPILER) $^ -o asm.exe -Llib -ltext
+	$(COMPILER) $^ -o asm.exe -Llib -ltext -lparser
 
 
 # Завершает сборку процессора
