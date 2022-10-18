@@ -218,7 +218,7 @@ int execute(Process *process) {
                 int val1 = 0, val2 = 0;
                 STACK_POP(stack, &val1, *ip);
                 STACK_POP(stack, &val2, *ip);
-                STACK_PUSH(stack, val2 * val1 / PRECISION, *ip);
+                STACK_PUSH(stack, (int)((long long)val2 * (long long)val1 / (long long)PRECISION), *ip);
                 break;
             }
 
