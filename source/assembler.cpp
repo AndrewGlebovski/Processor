@@ -203,7 +203,7 @@ int main(int argc, char *argv[]) {
 }
 
 
-#define DEF_CMD(name, num, arg, action) \
+#define DEF_CMD(name, num, arg, action, ...) \
     if (!strnicmp(cmd.str, #name, cmd.len)) { \
         process -> code[process -> ip++] = num; \
         if (arg) { \

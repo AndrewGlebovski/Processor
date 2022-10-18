@@ -1,9 +1,11 @@
+
 #include <stdio.h>
 #include <io.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <math.h>
 #include "stack.hpp"
+
 #include "command.hpp"
 
 
@@ -19,7 +21,7 @@ do { \
         printf("Empty stack pop in operation %i!\n", ip); \
         return 1; \
     } \
-} while(0);
+} while(0)
 
 
 /**
@@ -34,7 +36,7 @@ do { \
         printf("Stack push in operation %i!\n", ip); \
         return 1; \
     } \
-} while(0);
+} while(0)
 
 
 /// Contains information about process to execute
@@ -107,6 +109,13 @@ int main() {
 }
 
 
+#define DEF_CMD(name, num, arg, action, ...) \
+    case num: { \
+        __VA_ARGS__ \
+        break; \
+    }
+
+
 int execute(Process *process) {
     /// SHORTCUTS ///
     int *ip = &(process -> ip);
@@ -122,239 +131,7 @@ int execute(Process *process) {
         int cmd = (process -> code)[(*ip)++], arg = 0;
 
         switch(cmd & 0XFFFFFF) {
-            case CMD_HLT: {
-                // stack_dump(stack, 0, stdout);
-                stack_destructor(stack);
-                stack_destructor(call_stack);
-                return 0;
-            }
-
-            case CMD_IN: {
-                float value = 0;
-
-                if (!scanf("%f", &value)) {
-                    printf("Wrong argument given!\n");
-                    return 1;
-                }
-
-                STACK_PUSH(stack, (int)(value * PRECISION), process -> ip);
-
-                break;
-            }
-            
-            case CMD_OUT: {
-                int value = 0;
-                STACK_POP(stack, &value, *ip);
-                printf("%.3f\n", (float) value / PRECISION);
-                break;
-            }
-
-            case CMD_PUSH: {
-                if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
-                if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++] - 1]; // FORGOT TO DECREMENT ARGUMENT
-                if (cmd & BIT_MEM) arg = ram[arg / PRECISION];
-
-                STACK_PUSH(stack, arg, *ip);
-                break;
-            }
-
-            case CMD_POP: {
-                if (cmd & BIT_MEM) {
-                    if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
-                    if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++] - 1]; // ADD REGISTER INDEX CHECK
-
-                    arg /= PRECISION;
-
-                    if (arg < 0 || arg > (int) (sizeof(process -> ram) / sizeof(*process -> ram)) - 1) {
-                        printf("Segmentation fault! Wrong RAM index in operation %i!\n", *ip);
-                        return 1;
-                    }
-
-                    STACK_POP(stack, &ram[arg], *ip);
-                }
-                else if (cmd & BIT_CONST) {
-                    int value = 0;
-                    STACK_POP(stack, &value, *ip);
-                }
-                else if (cmd & BIT_REG) {
-                    arg = (process -> code)[(*ip)++];
-
-                    if (arg < 1 || arg > (int) (sizeof(process -> reg) / sizeof(*process -> reg))) {
-                        printf("Segmentation fault! Wrong register index in operation %i!\n", *ip);
-                        return 1;
-                    }
-
-                    STACK_POP(stack, &reg[arg - 1], *ip);
-                }
-
-                break;
-            }
-            
-            case CMD_DUP: {
-                int value = 0;
-                STACK_POP(stack, &value, *ip);
-                STACK_PUSH(stack, value, *ip);
-                STACK_PUSH(stack, value, *ip);
-                break;
-            }
-
-            case CMD_ADD: {
-                int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, *ip);
-                STACK_POP(stack, &val2, *ip);
-                STACK_PUSH(stack, val2 + val1, *ip);
-                break;
-            }
-
-            case CMD_SUB: {
-                int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, *ip);
-                STACK_POP(stack, &val2, *ip);
-                STACK_PUSH(stack, val2 - val1, *ip);
-                break;
-            }
-
-            case CMD_MUL: {
-                int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, *ip);
-                STACK_POP(stack, &val2, *ip);
-                STACK_PUSH(stack, (int)((long long)val2 * (long long)val1 / (long long)PRECISION), *ip);
-                break;
-            }
-
-            case CMD_SQRT: {
-                int val = 0;
-                STACK_POP(stack, &val, *ip);
-
-                if (val < 0) {
-                    printf("Negative number under root %i!\n", *ip);
-                    return 1;
-                }
-
-                STACK_PUSH(stack, (int) (sqrt((float)val / PRECISION) * PRECISION), *ip);
-                break;
-            }
-
-            case CMD_DIV: {
-                int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, *ip);
-                STACK_POP(stack, &val2, *ip);
-
-                if (val1 == 0) {
-                    printf("Zero division in operation %i!\n", *ip);
-                    return 1;
-                }
-
-                STACK_PUSH(stack, (int)((float)val2 / (float)val1 * PRECISION), *ip);
-                break;
-            }
-
-            case CMD_CALL: {
-                arg = (process -> code)[(*ip)++];
-
-                if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", *ip);
-                    return -1;
-                }
-
-                STACK_PUSH(call_stack, *ip, *ip);
-
-                *ip = arg;
-                break;
-            }
-
-            case CMD_RET: {
-                STACK_POP(call_stack, &(*ip), *ip)
-                break;
-            }
-
-            case CMD_JMP: {
-                arg = (process -> code)[(*ip)++];
-
-                if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", *ip);
-                    return -1;
-                }
-
-                *ip = arg;
-                break;
-            }
-
-            case CMD_JB: {
-                arg = (process -> code)[(*ip)++];
-
-                int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, *ip);
-                STACK_POP(stack, &val2, *ip);
-
-                if (!(val2 < val1))
-                    break;
-
-                if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", *ip);
-                    return -1;
-                }
-
-                *ip = arg;
-                break;
-            }
-
-            case CMD_JA: {
-                arg = (process -> code)[(*ip)++];
-
-                int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, *ip);
-                STACK_POP(stack, &val2, *ip);
-
-                if (!(val2 > val1))
-                    break;
-
-                if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", *ip);
-                    return -1;
-                }
-
-                *ip = arg;
-                break;
-            }
-
-            case CMD_JE: {
-                arg = (process -> code)[(*ip)++];
-
-                int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, *ip);
-                STACK_POP(stack, &val2, *ip);
-
-                if (!(val2 == val1))
-                    break;
-
-                if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", *ip);
-                    return -1;
-                }
-
-                *ip = arg;
-                break;
-            }
-
-            case CMD_JNE: {
-                arg = (process -> code)[(*ip)++];
-
-                int val1 = 0, val2 = 0;
-                STACK_POP(stack, &val1, *ip);
-                STACK_POP(stack, &val2, *ip);
-
-                if (!(val2 != val1))
-                    break;
-
-                if (arg == -1) {
-                    printf("Jump to -1 in operation %i!\n", *ip);
-                    return -1;
-                }
-
-                *ip = arg;
-                break;
-            }
+            #include "cmd.hpp"
 
             default: {
                 printf("Unknown command %i in operation %i!\n", cmd, *ip);
@@ -368,6 +145,9 @@ int execute(Process *process) {
     printf("[Warning] No hlt at end of the process!\n");
     return 1;
 }
+
+
+#undef DEF_CMD
 
 
 int read_file(int file, Process *process) {
