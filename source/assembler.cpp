@@ -28,11 +28,11 @@ typedef struct {
 
 /// Contains information about byte code to execute
 typedef struct {
-    int *code = nullptr; ///< Operation code 
-    int count = 0; ///< Operation count
-    int ip = 0; ///< Current operation
-    Label *labels = nullptr; ///< Process labels
-    int labels_count = 0; ///< Labels count
+    int *code = nullptr;        ///< Operation code 
+    int count = 0;              ///< Operation count
+    int ip = 0;                 ///< Current operation
+    Label *labels = nullptr;    ///< Process labels
+    int labels_count = 0;       ///< Labels count
 } Process;
 
 
@@ -122,14 +122,44 @@ int set_label_value(Process *process, String *cmd);
 
 
 
+void set_input_file(char *argv[], void *data);  ///< Sets input file
+void set_output_file(char *argv[], void *data); ///< Sets output file
+void show_help(char *argv[], void *data);       ///< Prints descriptions
 
-int main() {
-    int input = open("debug/source.txt", O_RDONLY);
 
-    if (input == -1) {
-        printf("Couldn't open file!\n");
+
+
+int main(int argc, char *argv[]) {
+    int input = -1, output = -1;
+
+    Command command_list[] = {
+        {
+            "-i", "--input", 
+            0, 
+            &set_input_file, 
+            &input,
+            "<relative path to a file> Changes input file"
+        },
+        {
+            "-o", "--output", 
+            0, 
+            &set_output_file, 
+            &output,
+            "<relative path to a file> Changes output file"
+        },
+        {
+            "-h", "--help", 
+            0, 
+            &show_help, 
+            &command_list,
+            "Prints all commands descriptions"
+        },
+    };
+
+    parse_args(argc, argv, command_list, sizeof(command_list) / sizeof(Command));
+
+    if (input == -1 || output == -1)
         return 1;
-    }
 
     Text text = {};
 
@@ -142,7 +172,7 @@ int main() {
     process.code = (int *) calloc(text.size * 3, sizeof(int));
     process.labels = (Label *) calloc(text.size, sizeof(Label));
 
-    FILE *listing = fopen("debug/listing.txt", "w");
+    FILE *listing = fopen("listing.txt", "w");
 
     fprintf(listing, "First pass\n");
     if (translate(&process, &text, listing))
@@ -156,13 +186,6 @@ int main() {
     print_process(&process, listing);
 
     fclose(listing);
-
-    int output = open("debug/binary.txt", O_WRONLY | O_CREAT | O_BINARY);
-
-    if (output == -1) {
-        printf("Couldn't open file!\n");
-        return 1;
-    }
 
     write_file(output, &process);
 
@@ -445,4 +468,37 @@ int set_label_value(Process *process, String *cmd) {
     }
 
     return 1;
+}
+
+
+void set_input_file(char *argv[], void *data) {
+	if (*(++argv)) {
+		*(int *)(data) = open(*argv, O_RDONLY);
+
+        if (*(int *)(data) == -1)
+            printf("Can't open file %s!\n", *argv);
+	}
+	else {
+		printf("No filename after -i, argument ignored!\n");
+	}
+}
+
+
+void set_output_file(char *argv[], void *data) {
+	if (*(++argv)) {
+		*(int *)(data) = open(*argv, O_WRONLY | O_CREAT | O_BINARY);
+
+        if (*(int *)(data) == -1)
+            printf("Can't open file %s!\n", *argv);
+	}
+	else {
+		printf("No filename after -o, argument ignored!\n");
+	}
+}
+
+
+void show_help(char *argv[], void *data) {
+	for(size_t i = 0; i < 3; i++) {
+		printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
+	}
 }

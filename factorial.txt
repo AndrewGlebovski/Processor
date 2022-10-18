@@ -1,0 +1,23 @@
+push 10
+
+jmp START:
+
+FACTORIAL:
+dup
+push 1
+sub
+dup
+push 1
+
+je ONE:
+call FACTORIAL:
+
+ONE:
+mul
+ret
+
+START:
+call FACTORIAL:
+
+out
+hlt

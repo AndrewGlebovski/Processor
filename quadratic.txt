@@ -1,0 +1,139 @@
+in
+in
+in
+
+pop RCX
+pop RBX
+pop RAX
+
+push RAX
+push 0
+
+je LINEAR_SOLUTION
+
+# Descriminant calculation
+push RBX
+push RBX
+mul
+
+push -4
+push RAX
+push RCX
+mul
+mul
+
+add
+
+pop RDX
+# Root check
+push RDX
+push 0
+
+ja TWO_SOLUTIONS
+
+push RDX
+push 0
+
+je ONE_SOLUTION
+
+push RDX
+push 0
+
+jb NO_SOLUTIONS
+
+
+NO_SOLUTIONS:
+    jmp RETURN
+
+
+TWO_SOLUTIONS:
+    push RDX
+    sqrt
+    pop RDX
+
+    push -1
+    push RBX
+    mul
+
+    dup
+
+    push RDX
+    sub
+
+    push 2
+    push RAX
+    mul
+    div
+
+    out
+
+    push RDX
+    add
+
+    push 2
+    push RAX
+    mul
+    div
+
+    out
+
+    jmp RETURN
+    
+
+ONE_SOLUTION:
+    push -1
+    push RBX
+    mul
+
+    push RAX
+    push 2
+    mul
+
+    div
+
+    out
+
+    jmp RETURN
+
+
+
+LINEAR_SOLUTION:
+    push RBX
+    push 0
+
+    je INF_SOLUTIONS
+
+    push -1
+    push RCX
+    mul
+
+    push RBX
+
+    div
+
+    out
+
+    jmp RETURN
+
+
+INF_SOLUTIONS:
+    push RCX
+    push 0
+
+    jne NO_SOLUTIONS
+
+    push 0
+    out
+
+    push 0
+    out
+
+    push 0
+    out
+
+    jmp RETURN
+
+
+RETURN:
+
+hlt
