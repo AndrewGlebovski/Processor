@@ -78,6 +78,9 @@ int execute(Process *process);
 void print_process(Process *process);
 
 
+int execute_pop(Process *process, int *ip, int cmd, int arg);
+
+
 
 
 int main() {
@@ -128,7 +131,7 @@ int execute(Process *process) {
 
 
     while(*ip < process -> count) {
-        int cmd = (process -> code)[(*ip)++], arg = 0;
+        int cmd = process -> code[(*ip)++], arg = 0;
 
         switch(cmd & 0XFFFFFF) {
             #include "cmd.hpp"
@@ -201,4 +204,37 @@ void print_process(Process *process) {
     stack_dump(&process -> call_stack, stack_check(&process -> call_stack), stdout);
 
     fflush(stdout);
+}
+
+
+int execute_pop(Process *process, int *ip, int cmd, int arg) {
+    if (cmd & BIT_MEM) {
+        if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
+        if (cmd & BIT_REG) arg += process -> reg[(process -> code)[(*ip)++] - 1]; // ADD REGISTER INDEX CHECK
+
+        arg /= PRECISION;
+
+        if (arg < 0 || arg > (int) (sizeof(process -> ram) / sizeof(*process -> ram)) - 1) {
+            printf("Segmentation fault! Wrong RAM index in operation %i!\n", *ip);
+            return 1;
+        }
+
+        STACK_POP(&process -> value_stack, process -> ram + arg, *ip);
+    }
+    else if (cmd & BIT_CONST) {
+        int value = 0;
+        STACK_POP(&process -> value_stack, &value, *ip);
+    }
+    else if (cmd & BIT_REG) {
+        arg = (process -> code)[(*ip)++];
+
+        if (arg < 1 || arg > (int) (sizeof(process -> reg) / sizeof(*process -> reg))) {
+            printf("Segmentation fault! Wrong register index in operation %i!\n", *ip);
+            return 1;
+        }
+
+        STACK_POP(&process -> value_stack, process -> reg + arg - 1, *ip);
+    }
+
+    return 0;
 }

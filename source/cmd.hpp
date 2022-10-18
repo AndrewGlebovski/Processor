@@ -70,34 +70,9 @@ DEF_CMD(DUP, 8, 0, 0,
     STACK_PUSH(stack, value, *ip);
 )
 
-DEF_CMD(POP, 9, 1, set_push_args(listing, process, process -> code, &process -> ip, &cmd),
-    if (cmd & BIT_MEM) {
-        if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
-        if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++] - 1]; // ADD REGISTER INDEX CHECK
-
-        arg /= PRECISION;
-
-        if (arg < 0 || arg > (int) (sizeof(process -> ram) / sizeof(*process -> ram)) - 1) {
-            printf("Segmentation fault! Wrong RAM index in operation %i!\n", *ip);
-            return 1;
-        }
-
-        STACK_POP(stack, &ram[arg], *ip);
-    }
-    else if (cmd & BIT_CONST) {
-        int value = 0;
-        STACK_POP(stack, &value, *ip);
-    }
-    else if (cmd & BIT_REG) {
-        arg = (process -> code)[(*ip)++];
-
-        if (arg < 1 || arg > (int) (sizeof(process -> reg) / sizeof(*process -> reg))) {
-            printf("Segmentation fault! Wrong register index in operation %i!\n", *ip);
-            return 1;
-        }
-
-        STACK_POP(stack, &reg[arg - 1], *ip);
-    }
+DEF_CMD(POP, 9, 1, set_push_args(listing, process, process -> code, &process -> ip, &cmd), 
+    if (execute_pop(process, ip, cmd, arg))
+        return 1;
 )
 
 DEF_CMD(JB, 10, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
