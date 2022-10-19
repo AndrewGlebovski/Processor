@@ -122,9 +122,9 @@ int set_label_value(Process *process, String *cmd);
 
 
 
-void set_input_file(char *argv[], void *data);  ///< Sets input file
-void set_output_file(char *argv[], void *data); ///< Sets output file
-void show_help(char *argv[], void *data);       ///< Prints descriptions
+void set_input_file(char *argv[], void *data);  ///< -i parser
+void set_output_file(char *argv[], void *data); ///< -o parser
+void show_help(char *argv[], void *data);       ///< -h parser
 
 
 
@@ -156,7 +156,8 @@ int main(int argc, char *argv[]) {
         },
     };
 
-    parse_args(argc, argv, command_list, sizeof(command_list) / sizeof(Command));
+    if (parse_args(argc, argv, command_list, sizeof(command_list) / sizeof(Command)))
+        return 1;
 
     if (input == -1 || output == -1)
         return 1;

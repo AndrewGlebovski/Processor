@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "stack.hpp"
+#include "parser.hpp"
 
 #include "command.hpp"
 
@@ -81,14 +82,39 @@ void print_process(Process *process);
 int execute_pop(Process *process, int *ip, int cmd, int arg);
 
 
+void set_input_file(char *argv[], void *data);  ///< -i parser
+void show_help(char *argv[], void *data);       ///< -h parser
 
 
-int main() {
-    int input = open("debug/binary.txt", O_RDONLY | O_BINARY);
+
+
+int main(int argc, char *argv[]) {
+    int input = -1;
+
+    Command command_list[] = {
+        {
+            "-i", "--input", 
+            0, 
+            &set_input_file, 
+            &input,
+            "<relative path to a file> Changes input file"
+        },
+        {
+            "-h", "--help", 
+            0, 
+            &show_help, 
+            &command_list,
+            "Prints all commands descriptions"
+        },
+    };
+
+    if (parse_args(argc, argv, command_list, sizeof(command_list) / sizeof(Command)))
+        return 1;
+
+    if (input == -1)
+        return 1;
 
     Process process = {};
-
-    // print_process(&process);
 
     stack_constructor(&process.value_stack, 32);
     stack_constructor(&process.call_stack, 32);
@@ -97,12 +123,8 @@ int main() {
 
     close(input);
 
-    // print_process(&process);
-
     if (execute(&process))
         print_process(&process);
-
-    // print_process(&process);
 
     free(process.code);
 
@@ -238,3 +260,24 @@ int execute_pop(Process *process, int *ip, int cmd, int arg) {
 
     return 0;
 }
+
+
+void set_input_file(char *argv[], void *data) {
+	if (*(++argv)) {
+		*(int *)(data) = open(*argv, O_RDONLY | O_BINARY);
+
+        if (*(int *)(data) == -1)
+            printf("Can't open file %s!\n", *argv);
+	}
+	else {
+		printf("No filename after -i, argument ignored!\n");
+	}
+}
+
+
+void show_help(char *argv[], void *data) {
+	for(size_t i = 0; i < 2; i++) {
+		printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
+	}
+}
+

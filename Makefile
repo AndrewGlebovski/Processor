@@ -21,7 +21,7 @@ assembler: $(BIN_DIR)/assembler.o
 
 # Завершает сборку процессора
 processor: $(BIN_DIR)/processor.o
-	$(COMPILER) $^ -o cpu.exe -Llib -lstack
+	$(COMPILER) $^ -o cpu.exe -Llib -lstack -lparser
 
 
 # Создает правила компиляции для компиляции для всех файлов, лежащих в source
