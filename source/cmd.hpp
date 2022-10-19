@@ -147,6 +147,45 @@ DEF_CMD(JNE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, 
     *ip = arg;
 )
 
+
+DEF_CMD(JAE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
+    arg = (process -> code)[(*ip)++];
+
+    int val1 = 0, val2 = 0;
+    STACK_POP(stack, &val1, *ip);
+    STACK_POP(stack, &val2, *ip);
+
+    if (!(val2 >= val1))
+        break;
+
+    if (arg == -1) {
+        printf("Jump to -1 in operation %i!\n", *ip);
+        return 1;
+    }
+
+    *ip = arg;
+)
+
+
+DEF_CMD(JBE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
+    arg = (process -> code)[(*ip)++];
+
+    int val1 = 0, val2 = 0;
+    STACK_POP(stack, &val1, *ip);
+    STACK_POP(stack, &val2, *ip);
+
+    if (!(val2 <= val1))
+        break;
+
+    if (arg == -1) {
+        printf("Jump to -1 in operation %i!\n", *ip);
+        return 1;
+    }
+
+    *ip = arg;
+)
+
+
 DEF_CMD(CALL, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
     arg = (process -> code)[(*ip)++];
 

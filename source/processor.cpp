@@ -195,14 +195,14 @@ int read_file(int file, Process *process) {
         return 1;
     }
 
-    int b = read(file, &(process -> count), sizeof(int));
+    int bytes = read(file, &(process -> count), sizeof(int));
 
     process -> code = (int *) calloc(process -> count, sizeof(int));
     
-    b += read(file, process -> code, (unsigned int) process -> count * sizeof(int));
+    bytes += read(file, process -> code, (unsigned int) process -> count * sizeof(int));
 
-    if (b != (process -> count + 1) * (int) sizeof(int)) {
-        printf("Expected bytes %i, actualy read %i", b, (process -> count + 1) * (int) sizeof(int));
+    if (bytes != (process -> count + 1) * (int) sizeof(int)) {
+        printf("Expected bytes %i, actualy read %i", bytes, (process -> count + 1) * (int) sizeof(int));
         return 1;
     }
 
@@ -252,10 +252,12 @@ int execute_pop(Process *process, int *ip, int cmd, int arg) {
 
         STACK_POP(&process -> value_stack, process -> ram + arg, *ip);
     }
+
     else if (cmd & BIT_CONST) {
         int value = 0;
         STACK_POP(&process -> value_stack, &value, *ip);
     }
+    
     else if (cmd & BIT_REG) {
         arg = (process -> code)[(*ip)++];
 
