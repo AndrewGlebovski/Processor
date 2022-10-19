@@ -186,3 +186,8 @@ DEF_CMD(IN, 0, 0,
 
     STACK_PUSH(stack, (int)(value * PRECISION), process -> ip);
 )
+
+DEF_CMD(SHOW, 0, 0,
+    if (show_ram(process))
+        return 1;
+)

@@ -10,6 +10,14 @@
 #include "command.hpp"
 
 
+const unsigned int SCREEN_WIDTH  = 50;
+const unsigned int SCREEN_HEIGHT = 20;
+const unsigned int SCREEN_SIZE = SCREEN_HEIGHT * SCREEN_WIDTH;
+
+const unsigned int REGISTER_SIZE = 4;
+const unsigned int RAM_SIZE = 1000;
+
+
 /**
  * \brief Shell for stack pop that throws error
  * \param [in]  stack_ptr Pointer to stack
@@ -50,8 +58,8 @@ typedef struct {
     Stack value_stack = {}; ///< Contains values 
     Stack call_stack = {}; ///< Function backtrace
 
-    int reg[4] = {0}; ///< Process REGISTER
-    int ram[100] = {0}; ///< Process RAM
+    int reg[REGISTER_SIZE] = {0}; ///< Process REGISTER
+    int ram[RAM_SIZE] = {0}; ///< Process RAM
 } Process;
 
 
@@ -79,7 +87,8 @@ int execute(Process *process);
 void print_process(Process *process);
 
 
-int execute_pop(Process *process, int *ip, int cmd, int arg);
+int execute_pop(Process *process, int *ip, int cmd, int arg);   ///< Executes pop command
+int show_ram(Process *process);                                 ///< Executes show command
 
 
 void set_input_file(char *argv[], void *data);  ///< -i parser
@@ -262,6 +271,29 @@ int execute_pop(Process *process, int *ip, int cmd, int arg) {
 }
 
 
+int show_ram(Process *process) {
+    if (RAM_SIZE < SCREEN_SIZE) {
+        printf("Ram size is less then screen size!\n");
+        return 1;
+    }
+
+    if (process -> ram[0]) putchar('*');
+    else putchar('.');
+
+    for(unsigned int i = 1; i < SCREEN_SIZE; i++) {
+        if (i % SCREEN_WIDTH == 0)
+            putchar('\n');
+
+        if (process -> ram[i]) putchar('*');
+        else putchar('.');
+    }
+
+    putchar('\n');
+
+    return 0;
+}
+
+
 void set_input_file(char *argv[], void *data) {
 	if (*(++argv)) {
 		*(int *)(data) = open(*argv, O_RDONLY | O_BINARY);
@@ -280,4 +312,3 @@ void show_help(char *argv[], void *data) {
 		printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
 	}
 }
-

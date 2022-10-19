@@ -1,0 +1,47 @@
+push 0
+pop RAX
+
+CYCLE_Y:
+
+push 0
+pop RBX
+
+CYCLE_X:
+
+push RAX
+push 50
+mul
+push RBX
+add
+
+pop RCX
+
+
+push 0.001
+pop [RCX]
+
+
+push RBX
+push 1
+add
+pop RBX
+
+
+push RBX
+push 50
+jne CYCLE_X
+
+
+push RAX
+push 1
+add
+pop RAX
+
+
+push RAX
+push 20
+jne CYCLE_Y
+
+show
+
+hlt
