@@ -15,7 +15,7 @@ const unsigned int SCREEN_HEIGHT = 20;
 const unsigned int SCREEN_SIZE = SCREEN_HEIGHT * SCREEN_WIDTH;
 
 const unsigned int REGISTER_SIZE = 4;
-const unsigned int RAM_SIZE = 1000;
+const unsigned int RAM_SIZE = 1200;
 
 
 /**

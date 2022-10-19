@@ -1,3 +1,10 @@
+in
+in
+in
+pop [1003]
+pop [1002]
+pop [1001]
+
 push 0
 pop RAX
 
@@ -16,8 +23,43 @@ add
 
 pop RCX
 
+push RAX
+push [1003]
+sub
+dup
+mul
+
+push RBX
+push [1002]
+sub
+dup
+mul
+
+add
+sqrt
+dup
+
+push [1001]
+push 0.5
+add
+
+ja NOT_IN_CIRCLE
+
+push [1001]
+push 0.5
+sub
+
+jb NOT_IN_CIRCLE
 
 push 0.001
+jmp SET_VALUE
+
+NOT_IN_CIRCLE:
+
+push 0
+
+SET_VALUE:
+
 pop [RCX]
 
 

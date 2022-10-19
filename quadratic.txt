@@ -43,10 +43,16 @@ jb NO_SOLUTIONS
 
 
 NO_SOLUTIONS:
+    push 0
+    out
+
     jmp RETURN
 
 
 TWO_SOLUTIONS:
+    push 2
+    out
+
     push RDX
     sqrt
     pop RDX
@@ -81,6 +87,9 @@ TWO_SOLUTIONS:
     
 
 ONE_SOLUTION:
+    push 1
+    out
+
     push -1
     push RBX
     mul
@@ -103,6 +112,9 @@ LINEAR_SOLUTION:
 
     je INF_SOLUTIONS
 
+    push 1
+    out
+
     push -1
     push RCX
     mul
@@ -122,13 +134,7 @@ INF_SOLUTIONS:
 
     jne NO_SOLUTIONS
 
-    push 0
-    out
-
-    push 0
-    out
-
-    push 0
+    push 3
     out
 
     jmp RETURN
