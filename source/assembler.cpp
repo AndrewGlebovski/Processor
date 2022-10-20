@@ -19,6 +19,13 @@ const char *REGISTERS[] = {
 };
 
 
+/// Hash type integer
+typedef unsigned long long hash_t;
+
+
+#include "hash.hpp"
+
+
 /// Contains information about label
 typedef struct {
     int value = 0;
@@ -127,9 +134,29 @@ void set_output_file(char *argv[], void *data); ///< -o parser
 void show_help(char *argv[], void *data);       ///< -h parser
 
 
+/**
+ * \brief Gets object hash sum
+ * \param [in] ptr  Pointer to object
+ * \param [in] size Object size in bytes
+ * \return Object hash sum or zero if wrong args given
+*/
+hash_t gnu_hash(const void *ptr, size_t size);
+
+
+/**
+ * \brief Generates or updates hash.hpp
+ * \note Please, launch this function only if you want to update hash.hpp
+ * I highly recommend that you don't use it every time
+ * You can simply put in main start and call asm.exe then you should turn it off
+*/
+void generate_hash_file();
+
+
 
 
 int main(int argc, char *argv[]) {
+    // generate_hash_file();
+
     int input = -1, output = -1;
 
     Command command_list[] = {
@@ -505,4 +532,39 @@ void show_help(char *argv[], void *data) {
 	for(size_t i = 0; i < 3; i++) {
 		printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
 	}
+}
+
+
+#define DEF_CMD(name, ...) \
+    fprintf(hash_file, "    CMD_"#name"_HASH = %llu,\n", gnu_hash(#name, sizeof(#name))); 
+
+
+void generate_hash_file() {
+    FILE *hash_file = fopen("source/hash.hpp", "w");
+
+    fprintf(hash_file, "// THIS FILE WAS CREATED AUTOMATICALLY!\n");
+    fprintf(hash_file, "// PLEASE, DO NOT UPDATE IT MANUALY!\n");
+    fprintf(hash_file, "// USE generate_hash_file() in assembler.cpp INSTEAD!\n\n");
+
+    fprintf(hash_file, "typedef enum {\n");
+
+    #include "cmd.hpp"
+
+    fprintf(hash_file, "} COMMANDS_HASH;\n");
+}
+
+
+#undef DEF_CMD
+
+
+hash_t gnu_hash(const void *ptr, size_t size) {
+    if (!ptr || !size)
+        return 0;
+
+    hash_t hash = 5381;
+
+    for(size_t i = 0; i < size; i++)
+        hash = hash * 33 + ((const char *)(ptr))[i];
+
+    return hash;
 }
