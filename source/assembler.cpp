@@ -30,6 +30,7 @@ typedef unsigned long long hash_t;
 typedef struct {
     int value = 0;
     String name = {};
+    hash_t hash = 0;
 } Label;
 
 
@@ -307,11 +308,10 @@ int write_file(int file, Process *process) {
 
 
 int get_label_value(Process *process, String *label) {
-    for(int i = 0; i < process -> labels_count; i++) {
-        if (process -> labels[i].name.len != label -> len)
-            continue;
+    hash_t label_hash = gnu_hash(label -> str, label -> len);
 
-        if (!strnicmp(process -> labels[i].name.str, label -> str, label -> len))
+    for(int i = 0; i < process -> labels_count; i++) {
+        if (process -> labels[i].hash == label_hash)
             return process -> labels[i].value;
     }
 
@@ -480,7 +480,7 @@ int set_label_value(Process *process, String *cmd) {
         if (!strnicmp(arg.str, ":", arg.len)) {
 
             if (get_label_value(process, cmd) == -1)
-                process -> labels[process -> labels_count++] = {process -> ip, *cmd};
+                process -> labels[process -> labels_count++] = {process -> ip, *cmd, gnu_hash(cmd -> str, cmd -> len)};
 
             return 0;
         }
@@ -493,7 +493,7 @@ int set_label_value(Process *process, String *cmd) {
 
                 if (str_to_int(&arg, &value)) {
                     if (get_label_value(process, cmd) == -1)
-                        process -> labels[process -> labels_count++] = {value, *cmd};
+                        process -> labels[process -> labels_count++] = {value, *cmd, gnu_hash(cmd -> str, cmd -> len)};
                             
                     return 0;
                 }
