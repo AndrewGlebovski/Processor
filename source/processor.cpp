@@ -292,6 +292,8 @@ int show_ram(Process *process) {
 
     putchar('\n');
 
+    fflush(stdout);
+
     return 0;
 }
 

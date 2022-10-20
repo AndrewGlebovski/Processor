@@ -15,7 +15,7 @@ DEF_CMD(PUSH, 1, set_push_args(listing, process, process -> code, &process -> ip
 DEF_CMD(OUT, 0, 0,
     int value = 0;
     STACK_POP(stack, &value, *ip);
-    printf("%.3f\n", (float) value / PRECISION);
+    printf("%g\n", (float) value / PRECISION);
 )
 
 DEF_CMD(ADD, 0, 0,

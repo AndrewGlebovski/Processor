@@ -154,7 +154,7 @@ void generate_hash_file();
 
 
 int main(int argc, char *argv[]) {
-    generate_hash_file(); // Uncomment to update hash.hpp
+    // generate_hash_file(); // Uncomment to update hash.hpp
 
     int input = -1, output = -1;
 
