@@ -230,3 +230,9 @@ DEF_CMD(SHOW, 0, 0,
     if (show_ram(process))
         return 1;
 )
+
+
+DEF_CMD(CLR, 0, 0,
+    system("CLS");
+    //printf("\e[H\e[2J\e[3J");
+)
