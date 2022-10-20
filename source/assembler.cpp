@@ -138,6 +138,7 @@ void show_help(char *argv[], void *data);       ///< -h parser
  * \brief Gets object hash sum
  * \param [in] ptr  Pointer to object
  * \param [in] size Object size in bytes
+ * \warning No difference in hash sum between lower and upper case
  * \return Object hash sum or zero if wrong args given
 */
 hash_t gnu_hash(const void *ptr, size_t size);
@@ -146,8 +147,6 @@ hash_t gnu_hash(const void *ptr, size_t size);
 /**
  * \brief Generates or updates hash.hpp
  * \note Please, launch this function only if you want to update hash.hpp
- * I highly recommend that you don't use it every time
- * You can simply put in main start and call asm.exe then you should turn it off
 */
 void generate_hash_file();
 
@@ -155,7 +154,7 @@ void generate_hash_file();
 
 
 int main(int argc, char *argv[]) {
-    // generate_hash_file();
+    generate_hash_file(); // Uncomment to update hash.hpp
 
     int input = -1, output = -1;
 
@@ -232,7 +231,7 @@ int main(int argc, char *argv[]) {
 
 
 #define DEF_CMD(name, arg, action, ...) \
-    if (!strnicmp(cmd.str, #name, cmd.len)) { \
+    case (CMD_##name##_HASH): { \
         process -> code[process -> ip++] = CMD_##name; \
         if (arg) { \
             if (action) { \
@@ -243,9 +242,8 @@ int main(int argc, char *argv[]) {
         else { \
             fprintf(listing, "%.4i %.8X             %s\n", process -> ip - 1, CMD_##name, text -> lines[i].str); \
         } \
-        continue; \
-    } \
-    else
+        break; \
+    }
 
 
 int translate(Process *process, Text *text, FILE *listing) {
@@ -263,10 +261,15 @@ int translate(Process *process, Text *text, FILE *listing) {
 
         if (!cmd.str) continue;
 
-        #include "cmd.hpp"
-        /*else*/ if (set_label_value(process, &cmd)) {
-            printf("Unknown command in line %i!\n", i + 1);
-            return 1;
+        hash_t cmd_hash = gnu_hash(cmd.str, cmd.len);
+
+        switch(cmd_hash) {
+            #include "cmd.hpp"
+            default:
+                if (set_label_value(process, &cmd)) {
+                    printf("Unknown command in line %i!\n", i + 1);
+                    return 1;
+                }
         }
     }
 
@@ -536,7 +539,7 @@ void show_help(char *argv[], void *data) {
 
 
 #define DEF_CMD(name, ...) \
-    fprintf(hash_file, "    CMD_"#name"_HASH = %llu,\n", gnu_hash(#name, sizeof(#name))); 
+    fprintf(hash_file, "    CMD_"#name"_HASH = %llu,\n", gnu_hash(#name, sizeof(#name) - 1)); 
 
 
 void generate_hash_file() {
@@ -564,7 +567,7 @@ hash_t gnu_hash(const void *ptr, size_t size) {
     hash_t hash = 5381;
 
     for(size_t i = 0; i < size; i++)
-        hash = hash * 33 + ((const char *)(ptr))[i];
+        hash = hash * 33 + tolower(((const char *)(ptr))[i]);
 
     return hash;
 }
