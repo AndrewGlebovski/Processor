@@ -203,22 +203,20 @@ int main(int argc, char *argv[]) {
     FILE *listing = fopen("listing.txt", "w");
 
     fprintf(listing, "First pass\n");
-    if (translate(&process, &text, listing))
-        return 1;
+    if (!translate(&process, &text, listing)) {
+        process.code = (int *) realloc(process.code, process.count * sizeof(int));
+        process.labels = (Label *) realloc(process.labels, process.labels_count * sizeof(Label));
 
-    process.code = (int *) realloc(process.code, process.count * sizeof(int));
-    process.labels = (Label *) realloc(process.labels, process.labels_count * sizeof(Label));
+        fprintf(listing, "\nSecond pass\n");
+        translate(&process, &text, listing);
 
-    fprintf(listing, "\nSecond pass\n");
-    if (translate(&process, &text, listing))
-        return 1;
+        write_file(output, &process);
+    }
 
     fprintf(listing, "\nProcess\n");
     print_process(&process, listing);
 
     fclose(listing);
-
-    write_file(output, &process);
 
     close(output);
 
@@ -520,7 +518,7 @@ void set_input_file(char *argv[], void *data) {
 
 void set_output_file(char *argv[], void *data) {
 	if (*(++argv)) {
-		*(int *)(data) = open(*argv, O_WRONLY | O_CREAT | O_BINARY);
+        *(int *)(data) = open(*argv, O_WRONLY | O_CREAT | O_BINARY, 00770);
 
         if (*(int *)(data) == -1)
             printf("Can't open file %s!\n", *argv);
@@ -532,7 +530,7 @@ void set_output_file(char *argv[], void *data) {
 
 
 void show_help(char *argv[], void *data) {
-	for(size_t i = 0; i < 3; i++) {
+	for(size_t i = 0; strcmp(((Command *)(data))[i].short_name, "-h") != 0; i++) {
 		printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
 	}
 }
