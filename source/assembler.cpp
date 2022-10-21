@@ -155,8 +155,9 @@ void generate_hash_file();
 
 
 int main(int argc, char *argv[]) {
-    // generate_hash_file(); // Uncomment to update hash.hpp
-
+#ifdef UPDATE_HASH
+    generate_hash_file();
+#else
     int input = -1, output = -1;
 
     Command command_list[] = {
@@ -226,6 +227,7 @@ int main(int argc, char *argv[]) {
     printf("Assembler!\n");
 
     return 0;
+#endif
 }
 
 
@@ -254,7 +256,7 @@ int translate(Process *process, Text *text, FILE *listing) {
     fprintf(listing, "IP   COMMAND  ARG 1 ARG 2 NAME\n");
 
     process -> ip = 0;
-
+#ifndef UPDATE_HASH
     for(int i = 0; text -> lines[i].str != nullptr && text -> lines[i].len != -1; i++) {
         String cmd = get_token(text -> lines[i].str, "[+]:", "#");
 
@@ -271,7 +273,7 @@ int translate(Process *process, Text *text, FILE *listing) {
                 }
         }
     }
-
+#endif
     process -> count = process -> ip;
 
     return 0;
