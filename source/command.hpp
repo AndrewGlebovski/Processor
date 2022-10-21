@@ -21,8 +21,8 @@ const int PRECISION = 1000;
 
 
 /// Signature
-const char *sign = "AT-AT";
+const char *SIGN = "AT-AT";
 
 
 /// Version
-const int version = 1;
+const int VERSION = 1;

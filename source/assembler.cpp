@@ -82,6 +82,24 @@ int get_register_index(String *name);
 
 
 /**
+ * \brief Allocates process memory
+ * \param [in] process This process memory will be allocate
+ * \note Free process memory to prevent memory leaks
+ * \return Non zero value means error
+*/
+int alloc_process(Process *process, Text *text);
+
+
+/**
+ * \brief Reallocates process memory
+ * \param [in] process This process will be reallocate
+ * \note You should allocate process memory before call
+ * \return Non zero value means error
+*/
+int realloc_process(Process *process);
+
+
+/**
  * \brief Free process memory
  * \param [in] process This process will be reinitialize
  * \return Non zero value means error
@@ -198,15 +216,15 @@ int main(int argc, char *argv[]) {
 
     Process process = {};
     
-    process.code = (int *) calloc(text.size * 3, sizeof(int));
-    process.labels = (Label *) calloc(text.size, sizeof(Label));
+    if (alloc_process(&process, &text))
+        return 1;
 
     FILE *listing = fopen("listing.txt", "w");
 
     fprintf(listing, "First pass\n");
     if (!translate(&process, &text, listing)) {
-        process.code = (int *) realloc(process.code, process.count * sizeof(int));
-        process.labels = (Label *) realloc(process.labels, process.labels_count * sizeof(Label));
+        if (realloc_process(&process))
+            return 1;
 
         fprintf(listing, "\nSecond pass\n");
         translate(&process, &text, listing);
@@ -294,15 +312,15 @@ int write_file(int file, Process *process) {
         return 1;
     }
 
-    int bytes = write(file, sign, sizeof(sign));
+    int bytes = write(file, SIGN, sizeof(SIGN));
 
-    bytes += write(file, &version, sizeof(int));
+    bytes += write(file, &VERSION, sizeof(int));
     
     bytes += write(file, &(process -> count), sizeof(int));
 
     bytes += write(file, process -> code, (unsigned int) process -> count * sizeof(int));
 
-    if (bytes != (int) sizeof(sign) + (process -> count + 2) * (int) sizeof(int)) {
+    if (bytes != (int) sizeof(SIGN) + (process -> count + 2) * (int) sizeof(int)) {
         printf("Expected bytes %i, actualy written %i", bytes, (process -> count + 1) * (int) sizeof(int));
         return 1;
     }
@@ -357,6 +375,44 @@ int get_register_index(String *name) {
     }
 
     return -1;
+}
+
+
+int alloc_process(Process *process, Text *text) {
+    process -> code = (int *) calloc(text -> size * 3, sizeof(int));
+
+    if (!process -> code) {
+        printf("Can't allocate memory for code!\n");
+        return 1;
+    }
+
+    process -> labels = (Label *) calloc(text -> size, sizeof(Label));
+
+    if (!process -> code) {
+        printf("Can't allocate memory for labels!\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+
+int realloc_process(Process *process) {
+    process -> code = (int *) realloc(process -> code, process -> count * sizeof(int));
+
+    if (!process -> code) {
+        printf("Can't reallocate memory for code!\n");
+        return 1;
+    }
+
+    process -> labels = (Label *) realloc(process -> labels, process -> labels_count * sizeof(Label));
+
+    if (!process -> code) {
+        printf("Can't reallocate memory for labels!\n");
+        return 1;
+    }
+
+    return 0;
 }
 
 

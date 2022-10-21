@@ -197,11 +197,11 @@ int read_file(int file, Process *process) {
         return 1;
     }
 
-    char sig[sizeof(sign)] = ""; 
+    char sig[sizeof(SIGN)] = ""; 
 
-    int bytes = read(file, &sig, sizeof(sign));
+    int bytes = read(file, &sig, sizeof(SIGN));
 
-    if (strnicmp(sig, sign, sizeof(sign))) {
+    if (strnicmp(sig, SIGN, sizeof(SIGN))) {
         printf("Signature of file doesn't match!\n");
         return 1;
     }
@@ -210,7 +210,7 @@ int read_file(int file, Process *process) {
 
     bytes += read(file, &ver, sizeof(int));
 
-    if (ver != version) {
+    if (ver != VERSION) {
         printf("Version of file doesn't match!\n");
         return 1;
     }
@@ -221,7 +221,7 @@ int read_file(int file, Process *process) {
     
     bytes += read(file, process -> code, (unsigned int) process -> count * sizeof(int));
 
-    if (bytes != (int) sizeof(sign) + (process -> count + 2) * (int) sizeof(int)) {
+    if (bytes != (int) sizeof(SIGN) + (process -> count + 2) * (int) sizeof(int)) {
         printf("Expected bytes %i, actualy read %i", bytes, (process -> count + 1) * (int) sizeof(int));
         return 1;
     }
