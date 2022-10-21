@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <io.h>
 #include <fcntl.h>
@@ -7,7 +6,7 @@
 #include <string.h>
 #include "stack.hpp"
 #include "parser.hpp"
-
+#include "cpu_func_list.hpp"
 #include "command.hpp"
 
 
@@ -92,31 +91,12 @@ int execute_pop(Process *process, int *ip, int cmd, int arg);   ///< Executes po
 int show_ram(Process *process);                                 ///< Executes show command
 
 
-void set_input_file(char *argv[], void *data);  ///< -i parser
-void show_help(char *argv[], void *data);       ///< -h parser
-
-
 
 
 int main(int argc, char *argv[]) {
     int input = -1;
 
-    Command command_list[] = {
-        {
-            "-i", "--input", 
-            0, 
-            &set_input_file, 
-            &input,
-            "<relative path to a file> Changes input file"
-        },
-        {
-            "-h", "--help", 
-            0, 
-            &show_help, 
-            &command_list,
-            "Prints all commands descriptions"
-        },
-    };
+    #include "cpu_cmd_list.hpp"
 
     if (parse_args(argc, argv, command_list, sizeof(command_list) / sizeof(Command)))
         return 1;
@@ -317,22 +297,3 @@ int show_ram(Process *process) {
     return 0;
 }
 
-
-void set_input_file(char *argv[], void *data) {
-	if (*(++argv)) {
-		*(int *)(data) = open(*argv, O_RDONLY | O_BINARY);
-
-        if (*(int *)(data) == -1)
-            printf("Can't open file %s!\n", *argv);
-	}
-	else {
-		printf("No filename after -i, argument ignored!\n");
-	}
-}
-
-
-void show_help(char *argv[], void *data) {
-	for(size_t i = 0; i < 2; i++) {
-		printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
-	}
-}

@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <fcntl.h>
 #include <io.h>
@@ -7,7 +6,7 @@
 #include <ctype.h>
 #include "text.hpp"
 #include "parser.hpp"
-
+#include "asm_func_list.hpp"
 #include "command.hpp"
 
 
@@ -147,12 +146,6 @@ int set_jmp_args(FILE *listing, Process *process, int *code, int *ip, String *cm
 int set_label_value(Process *process, String *cmd);
 
 
-
-void set_input_file(char *argv[], void *data);  ///< -i parser
-void set_output_file(char *argv[], void *data); ///< -o parser
-void show_help(char *argv[], void *data);       ///< -h parser
-
-
 /**
  * \brief Gets object hash sum
  * \param [in] ptr  Pointer to object
@@ -178,29 +171,7 @@ int main(int argc, char *argv[]) {
 #else
     int input = -1, output = -1;
 
-    Command command_list[] = {
-        {
-            "-i", "--input", 
-            0, 
-            &set_input_file, 
-            &input,
-            "<relative path to a file> Changes input file"
-        },
-        {
-            "-o", "--output", 
-            0, 
-            &set_output_file, 
-            &output,
-            "<relative path to a file> Changes output file"
-        },
-        {
-            "-h", "--help", 
-            0, 
-            &show_help, 
-            &command_list,
-            "Prints all commands descriptions"
-        },
-    };
+    #include "asm_cmd_list.hpp"
 
     if (parse_args(argc, argv, command_list, sizeof(command_list) / sizeof(Command)))
         return 1;
@@ -562,39 +533,6 @@ int set_label_value(Process *process, String *cmd) {
     }
 
     return 1;
-}
-
-
-void set_input_file(char *argv[], void *data) {
-	if (*(++argv)) {
-		*(int *)(data) = open(*argv, O_RDONLY);
-
-        if (*(int *)(data) == -1)
-            printf("Can't open file %s!\n", *argv);
-	}
-	else {
-		printf("No filename after -i, argument ignored!\n");
-	}
-}
-
-
-void set_output_file(char *argv[], void *data) {
-	if (*(++argv)) {
-        *(int *)(data) = open(*argv, O_WRONLY | O_CREAT | O_BINARY, 00770);
-
-        if (*(int *)(data) == -1)
-            printf("Can't open file %s!\n", *argv);
-	}
-	else {
-		printf("No filename after -o, argument ignored!\n");
-	}
-}
-
-
-void show_help(char *argv[], void *data) {
-	for(size_t i = 0; strcmp(((Command *)(data))[i].short_name, "-h") != 0; i++) {
-		printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
-	}
 }
 
 
