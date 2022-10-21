@@ -7,7 +7,14 @@ DEF_CMD(HLT, 0, 0,
 DEF_CMD(PUSH, 1, set_push_args(listing, process, process -> code, &process -> ip, &cmd), 
     if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
     if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++] - 1]; // FORGOT TO DECREMENT ARGUMENT
-    if (cmd & BIT_MEM) arg = ram[arg / PRECISION];
+    if (cmd & BIT_MEM) { 
+        if (arg < 0 || arg >= (int) RAM_SIZE) {
+            printf("Segmentation fault! Wrong RAM index in operation %i!\n", *ip);
+            return 1;
+        }
+
+        arg = ram[arg / PRECISION];
+    }
 
     STACK_PUSH(stack, arg, *ip);
 )

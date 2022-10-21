@@ -106,9 +106,6 @@ int main(int argc, char *argv[]) {
 
     Process process = {};
 
-    stack_constructor(&process.value_stack, 32);
-    stack_constructor(&process.call_stack, 32);
-
     if (read_file(input, &process))
         return 1;
 
@@ -133,6 +130,9 @@ int main(int argc, char *argv[]) {
 
 
 int execute(Process *process) {
+    stack_constructor(&process -> value_stack, 4);
+    stack_constructor(&process -> call_stack, 4);
+
     /// SHORTCUTS ///
     int *ip = &(process -> ip);
 
@@ -245,7 +245,7 @@ int execute_pop(Process *process, int *ip, int cmd, int arg) {
 
         arg /= PRECISION;
 
-        if (arg < 0 || arg > (int) (sizeof(process -> ram) / sizeof(*process -> ram)) - 1) {
+        if (arg < 0 || arg >= (int) RAM_SIZE) {
             printf("Segmentation fault! Wrong RAM index in operation %i!\n", *ip);
             return 1;
         }
@@ -261,7 +261,7 @@ int execute_pop(Process *process, int *ip, int cmd, int arg) {
     else if (cmd & BIT_REG) {
         arg = (process -> code)[(*ip)++];
 
-        if (arg < 1 || arg > (int) (sizeof(process -> reg) / sizeof(*process -> reg))) {
+        if (arg < 1 || arg > (int) REGISTER_SIZE) {
             printf("Segmentation fault! Wrong register index in operation %i!\n", *ip);
             return 1;
         }
