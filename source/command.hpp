@@ -18,3 +18,11 @@ typedef enum {
 
 /// Real number precision
 const int PRECISION = 1000;
+
+
+/// Signature
+const char *sign = "AT-AT";
+
+
+/// Version
+const int version = 1;

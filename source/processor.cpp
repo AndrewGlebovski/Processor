@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "stack.hpp"
 #include "parser.hpp"
 
@@ -128,7 +129,8 @@ int main(int argc, char *argv[]) {
     stack_constructor(&process.value_stack, 32);
     stack_constructor(&process.call_stack, 32);
 
-    read_file(input, &process);
+    if (read_file(input, &process))
+        return 1;
 
     close(input);
 
@@ -195,13 +197,31 @@ int read_file(int file, Process *process) {
         return 1;
     }
 
-    int bytes = read(file, &(process -> count), sizeof(int));
+    char sig[sizeof(sign)] = ""; 
+
+    int bytes = read(file, &sig, sizeof(sign));
+
+    if (strnicmp(sig, sign, sizeof(sign))) {
+        printf("Signature of file doesn't match!\n");
+        return 1;
+    }
+
+    int ver = 0;
+
+    bytes += read(file, &ver, sizeof(int));
+
+    if (ver != version) {
+        printf("Version of file doesn't match!\n");
+        return 1;
+    }
+
+    bytes += read(file, &(process -> count), sizeof(int));
 
     process -> code = (int *) calloc(process -> count, sizeof(int));
     
     bytes += read(file, process -> code, (unsigned int) process -> count * sizeof(int));
 
-    if (bytes != (process -> count + 1) * (int) sizeof(int)) {
+    if (bytes != (int) sizeof(sign) + (process -> count + 2) * (int) sizeof(int)) {
         printf("Expected bytes %i, actualy read %i", bytes, (process -> count + 1) * (int) sizeof(int));
         return 1;
     }

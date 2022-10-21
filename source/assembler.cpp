@@ -294,11 +294,15 @@ int write_file(int file, Process *process) {
         return 1;
     }
 
-    int bytes = write(file, &(process -> count), sizeof(int));
+    int bytes = write(file, sign, sizeof(sign));
+
+    bytes += write(file, &version, sizeof(int));
+    
+    bytes += write(file, &(process -> count), sizeof(int));
 
     bytes += write(file, process -> code, (unsigned int) process -> count * sizeof(int));
 
-    if (bytes != (process -> count + 1) * (int) sizeof(int)) {
+    if (bytes != (int) sizeof(sign) + (process -> count + 2) * (int) sizeof(int)) {
         printf("Expected bytes %i, actualy written %i", bytes, (process -> count + 1) * (int) sizeof(int));
         return 1;
     }
