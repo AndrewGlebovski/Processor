@@ -11,6 +11,14 @@ BIN_DIR=binary
 SRC_DIR=source
 
 
+# Зависимости ассемблера
+ASM_DPD = command cmd assert parser hash asm_cmd_list asm_func_list text
+
+
+# Зависимости процессора
+CPU_DPD = command cmd assert parser stack dsl cpu_cmd_list cpu_func_list
+
+
 all: processor assembler
 
 
@@ -24,6 +32,11 @@ processor: $(BIN_DIR)/processor.o
 	$(COMPILER) $^ -o cpu.exe -Llib -lstack -lparser
 
 
-# Создает правила компиляции для компиляции для всех файлов, лежащих в source
-$(BIN_DIR)/%.o: $(SRC_DIR)/%.cpp $(SRC_DIR)/command.hpp $(SRC_DIR)/cmd.hpp $(SRC_DIR)/dsl.hpp
+# Предварительная сборка ассемблера
+$(BIN_DIR)/assembler.o: $(SRC_DIR)/assembler.cpp $(addprefix $(SRC_DIR)/, $(addsuffix .hpp, $(ASM_DPD)))
+	$(COMPILER) $(FLAGS) -c $< -o $@
+
+
+# Предварительная сборка процессора
+$(BIN_DIR)/processor.o: $(SRC_DIR)/processor.cpp $(addprefix $(SRC_DIR)/, $(addsuffix .hpp, $(CPU_DPD)))
 	$(COMPILER) $(FLAGS) -c $< -o $@
