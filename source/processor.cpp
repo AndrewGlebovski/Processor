@@ -8,6 +8,7 @@
 #include "parser.hpp"
 #include "cpu_func_list.hpp"
 #include "command.hpp"
+#include "assert.hpp"
 
 
 const unsigned int SCREEN_WIDTH  = 50;
@@ -111,10 +112,10 @@ int main(int argc, char *argv[]) {
 }
 
 
-#define DEF_CMD(name, arg, action, ...) \
-    case CMD_##name: { \
-        __VA_ARGS__ \
-        break; \
+#define DEF_CMD(name, arg, action, ...)     \
+    case CMD_##name: {                      \
+        __VA_ARGS__                         \
+        break;                              \
     }
 
 #include "dsl.hpp"
@@ -152,33 +153,20 @@ int execute(Process *process) {
 
 
 int read_file(int file, Process *process) {
-    if (file == -1) {
-        printf("Invalid file!\n");
-        return 1;
-    }
-
-    if (!process) {
-        printf("Can't work with then null pointer!\n");
-        return 1;
-    }
+    ASSERT(file > -1, "Invalid file!");
+    ASSERT(process, "Can't work with then null pointer!");
 
     char sig[sizeof(SIGN)] = ""; 
 
     int bytes = read(file, &sig, sizeof(SIGN));
 
-    if (strnicmp(sig, SIGN, sizeof(SIGN))) {
-        printf("Signature of file doesn't match!\n");
-        return 1;
-    }
+    ASSERT(!strnicmp(sig, SIGN, sizeof(SIGN)), "Signature of file doesn't match!");
 
     int ver = 0;
 
     bytes += read(file, &ver, sizeof(int));
 
-    if (ver != VERSION) {
-        printf("Version of file doesn't match!\n");
-        return 1;
-    }
+    ASSERT(ver == VERSION, "Version of file doesn't match!");
 
     bytes += read(file, &(process -> count), sizeof(int));
 
@@ -196,49 +184,25 @@ int read_file(int file, Process *process) {
 
 
 int init_process(Process *process) {
-    if (!process) {
-        printf("Can't work with then null pointer!\n");
-        return 1;
-    }
-
-    if (!process) {
-        printf("Can't work with then null pointer!\n");
-        return 1;
-    }
+    ASSERT(process, "Can't work with then null pointer!");
 
     process -> reg = (int *) calloc(REGISTER_SIZE, sizeof(int));
 
-    if (!process -> reg){
-        printf("Can't allocate process reg!\n");
-        return 1;
-    }
+    ASSERT(process -> reg, "Can't allocate process reg!");
 
     process -> ram = (int *) calloc(RAM_SIZE, sizeof(int));
 
-    if (!process -> ram){
-        printf("Can't allocate process ram!\n");
-        return 1;
-    }
+    ASSERT(process -> ram, "Can't allocate process ram!");
 
-    if (stack_constructor(&process -> value_stack, 4)){
-        printf("Unable to construct value stack!\n");
-        return 1;
-    }
-
-    if (stack_constructor(&process -> call_stack, 4)){
-        printf("Unable to construct call stack!\n");
-        return 1;
-    }
+    ASSERT(!stack_constructor(&process -> value_stack, 4), "Unable to construct value stack!");
+    ASSERT(!stack_constructor(&process -> call_stack, 4), "Unable to construct call stack!");
 
     return 0;
 }
 
 
 int free_process(Process *process) {
-    if (!process -> ram || !process -> reg){
-        printf("Process has invalid ram or register pointers!\n");
-        return 1;
-    }
+    ASSERT(process -> reg && process -> ram, "Process has invalid ram or register pointers!");
 
     free(process -> ram);
     process -> ram = nullptr;
@@ -246,15 +210,8 @@ int free_process(Process *process) {
     free(process -> reg);
     process -> reg = nullptr;
 
-    if (stack_destructor(&process -> value_stack)){
-        printf("Unable to destroy value stack!\n");
-        return 1;
-    }
-
-    if (stack_destructor(&process -> call_stack)){
-        printf("Unable to destroy call stack!\n");
-        return 1;
-    }
+    ASSERT(!stack_destructor(&process -> value_stack), "Unable to destroy value stack!");
+    ASSERT(!stack_destructor(&process -> call_stack), "Unable to destroy call stack!");
 
     return 0;
 }
@@ -295,38 +252,23 @@ int execute_pop(Process *process, int *ip, int cmd, int arg) {
 
         arg /= PRECISION;
 
-        if (arg < 0 || arg >= (int) RAM_SIZE) {
-            printf("Segmentation fault! Wrong RAM index in operation %i!\n", *ip);
-            return 1;
-        }
+        ASSERT_IP(arg > -1 && arg < (int) RAM_SIZE, "Segmentation fault! Wrong RAM index!", *ip - 1);
 
-        if (stack_pop(&process -> value_stack, process -> ram + arg)) { \
-            printf("Empty stack pop in operation %i!\n", *ip); \
-            return 1; \
-        }
+        ASSERT_IP(!stack_pop(&process -> value_stack, process -> ram + arg), "Empty stack pop!", *ip - 1);
     }
 
     else if (cmd & BIT_CONST) {
         int value = 0;
         
-        if (stack_pop(&process -> value_stack, &value)) { \
-            printf("Empty stack pop in operation %i!\n", *ip); \
-            return 1; \
-        }
+        ASSERT_IP(!stack_pop(&process -> value_stack, &value), "Empty stack pop!", *ip - 1);
     }
     
     else if (cmd & BIT_REG) {
-        arg = (process -> code)[(*ip)++];
+        arg = (process -> code)[(*ip)++] - 1;
 
-        if (arg < 1 || arg > (int) REGISTER_SIZE) {
-            printf("Segmentation fault! Wrong register index in operation %i!\n", *ip);
-            return 1;
-        }
+        ASSERT_IP(arg > -1 && arg < (int) REGISTER_SIZE, "Segmentation fault! Wrong register index!", *ip - 1);
 
-        if (stack_pop(&process -> value_stack, process -> reg + arg - 1)) { \
-            printf("Empty stack pop in operation %i!\n", *ip); \
-            return 1; \
-        }
+        ASSERT_IP(!stack_pop(&process -> value_stack, process -> reg + arg), "Empty stack pop!", *ip - 1);
     }
 
     return 0;
@@ -334,10 +276,7 @@ int execute_pop(Process *process, int *ip, int cmd, int arg) {
 
 
 int show_ram(Process *process) {
-    if (RAM_SIZE < SCREEN_SIZE) {
-        printf("Ram size is less then screen size!\n");
-        return 1;
-    }
+    ASSERT(RAM_SIZE >= SCREEN_SIZE, "Ram size is less then screen size!");
 
     if (process -> ram[0]) putchar('*');
     else putchar('.');

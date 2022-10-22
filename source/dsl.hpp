@@ -1,23 +1,17 @@
 /**
  * \brief Pushes value to stack
 */
-#define PUSH_(value)                                        \
-    if (stack_push(stack, value)) {                         \
-        printf("Stack push error in operation %i!\n", *ip); \
-        return 1;                                           \
-    }                                                       \
+#define PUSH_(value)                                                            \
+    ASSERT_IP(!stack_push(stack, value), "Stack push error!", *ip - 1);         \
     do {} while(0)
 
 
 /**
  * \brief Creates variable and pops value from stack into it
 */
-#define POP_(var)                                           \
-    int var = 0;                                            \
-    if (stack_pop(stack, &var)) {                           \
-        printf("Empty stack pop in operation %i!\n", *ip);  \
-        return 1;                                           \
-    }                                                       \
+#define POP_(var)                                                               \
+    int var = 0;                                                                \
+    ASSERT_IP(!stack_pop(stack, &var), "Empty stack pop!", *ip - 1);            \
     do {} while(0)
 
 
@@ -26,10 +20,7 @@
 */
 #define JMP_()                                              \
     arg = process -> code[*ip];                             \
-    if (arg == -1) {                                        \
-        printf("Jump to -1 in operation %i!\n", *ip);       \
-        return 1;                                           \
-    }                                                       \
+    ASSERT_IP(arg > -1, "Jump to -1!", *ip - 1);            \
     *ip = arg;                                              \
     do {} while(0)
 
@@ -47,7 +38,7 @@
  * \brief Calls jmp and remembers its position
 */
 #define CALL_()                                             \
-    stack_push(call_stack, *ip + 1);                            \
+    stack_push(call_stack, *ip + 1);                        \
     JMP_();                                                 \
     do {} while(0)
 
@@ -56,10 +47,7 @@
  * \brief Returns to previous call position
 */
 #define RET_()                                              \
-    if (stack_pop(call_stack, ip)) {                        \
-        printf("Empty call stack pop!\n");                  \
-        return 1;                                           \
-    }                                                       \
+    ASSERT_IP(!stack_pop(call_stack, ip), "Empty call stack pop!", *ip - 1); \
     do {} while(0)
 
 

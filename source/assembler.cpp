@@ -8,6 +8,7 @@
 #include "parser.hpp"
 #include "asm_func_list.hpp"
 #include "command.hpp"
+#include "assert.hpp"
 
 
 const char *REGISTERS[] = {
@@ -237,10 +238,7 @@ int main(int argc, char *argv[]) {
 
 
 int translate(Process *process, Text *text, FILE *listing) {
-    if (!listing) {
-        printf("No listing file provided!\n");
-        return 1;
-    }
+    ASSERT(listing, "No listing file provided!");
 
     fprintf(listing, "IP   COMMAND  ARG 1 ARG 2 NAME\n");
 
@@ -273,15 +271,8 @@ int translate(Process *process, Text *text, FILE *listing) {
 
 
 int write_file(int file, Process *process) {
-    if (file == -1) {
-        printf("Invalid file!\n");
-        return 1;
-    }
-
-    if (!process) {
-        printf("Can't work with then null pointer!\n");
-        return 1;
-    }
+    ASSERT(file > -1, "Invalid file!");
+    ASSERT(process, "Can't work with then null pointer!");
 
     int bytes = write(file, SIGN, sizeof(SIGN));
 
@@ -352,17 +343,11 @@ int get_register_index(String *name) {
 int alloc_process(Process *process, Text *text) {
     process -> code = (int *) calloc(text -> size * 3, sizeof(int));
 
-    if (!process -> code) {
-        printf("Can't allocate memory for code!\n");
-        return 1;
-    }
+    ASSERT(process -> code, "Can't allocate memory for code!");
 
     process -> labels = (Label *) calloc(text -> size, sizeof(Label));
 
-    if (!process -> code) {
-        printf("Can't allocate memory for labels!\n");
-        return 1;
-    }
+    ASSERT(process -> labels, "Can't allocate memory for labels!");
 
     return 0;
 }
@@ -371,27 +356,18 @@ int alloc_process(Process *process, Text *text) {
 int realloc_process(Process *process) {
     process -> code = (int *) realloc(process -> code, process -> count * sizeof(int));
 
-    if (!process -> code) {
-        printf("Can't reallocate memory for code!\n");
-        return 1;
-    }
+    ASSERT(process -> code, "Can't reallocate memory for code!");
 
     process -> labels = (Label *) realloc(process -> labels, process -> labels_count * sizeof(Label));
 
-    if (!process -> code) {
-        printf("Can't reallocate memory for labels!\n");
-        return 1;
-    }
+    ASSERT(process -> labels, "Can't reallocate memory for labels!");
 
     return 0;
 }
 
 
 int free_process(Process *process) {
-    if (!process -> code || !process -> labels) {
-        printf("Failed to free memory due to null pointer!\n");
-        return 1;
-    }
+    ASSERT(process -> code && process -> labels, "Failed to free memory due to null pointer!");
 
     free(process -> code);
     process -> code = nullptr;
@@ -424,14 +400,14 @@ int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *c
     String arg = get_token(cmd -> str + cmd -> len, "[+]:", "#");
     int *flag = code + *ip - 1, value = 0;
 
-    if (!arg.str) return 1;
+    ASSERT(arg.str, "No argument after push!");
 
     if (!strnicmp(arg.str, "[", arg.len)) {
         *flag |= BIT_MEM;
 
         arg = get_token(arg.str + arg.len, "[+]:", "#");
 
-        if (!arg.str) return 1;
+        ASSERT(arg.str, "No closing bracket after integer!");
     }
 
     if (str_to_int(&arg, &value) || (value = get_label_value(process, &arg)) != -1) {

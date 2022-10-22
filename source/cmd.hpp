@@ -6,10 +6,7 @@ DEF_CMD(PUSH, 1, set_push_args(listing, process, process -> code, &process -> ip
     if (cmd & BIT_CONST) arg = process -> code[(*ip)++];
     if (cmd & BIT_REG) arg += reg[process -> code[(*ip)++] - 1]; // FORGOT TO DECREMENT ARGUMENT
     if (cmd & BIT_MEM) {
-        if (arg < 0 || arg / 1000 >= (int) RAM_SIZE) {
-            printf("Segmentation fault! Wrong RAM index in operation %i!\n", *ip);
-            return 1;
-        }
+        ASSERT_IP(arg > -1 && arg / 1000 < (int) RAM_SIZE, "Segmentation fault! Wrong RAM index!", *ip - 1);
 
         arg = ram[arg / PRECISION];
     }
@@ -43,10 +40,7 @@ DEF_CMD(DIV, 0, 0,
     POP_(val1);
     POP_(val2);
 
-    if (val1 == 0) {
-        printf("Zero division in operation %i!\n", *ip);
-        return 1;
-    }
+    ASSERT_IP(val1, "Zero division!", *ip - 1);
 
     PUSH_((int)((float)val2 / (float)val1 * PRECISION));
 )
@@ -122,10 +116,7 @@ DEF_CMD(RET, 0, 0,
 DEF_CMD(SQRT, 0, 0,
     POP_(val);
 
-    if (val < 0) {
-        printf("Negative number under root %i!\n", *ip);
-        return 1;
-    }
+    ASSERT_IP(val >= 0, "Negative number under root!", *ip - 1);
 
     PUSH_((int) (sqrt((float)val / PRECISION) * PRECISION));
 )
@@ -133,10 +124,7 @@ DEF_CMD(SQRT, 0, 0,
 DEF_CMD(IN, 0, 0,
     float value = 0;
 
-    if (!scanf("%f", &value)) {
-        printf("Wrong argument given!\n");
-        return 1;
-    }
+    ASSERT(scanf("%f", &value), "Wrong argument given!");
 
     PUSH_((int)(value * PRECISION));
 )
