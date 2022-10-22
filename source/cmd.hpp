@@ -3,9 +3,9 @@ DEF_CMD(HLT, 0, 0,
 )
 
 DEF_CMD(PUSH, 1, set_push_args(listing, process, process -> code, &process -> ip, &cmd), 
-    if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
-    if (cmd & BIT_REG) arg += reg[(process -> code)[(*ip)++] - 1]; // FORGOT TO DECREMENT ARGUMENT
-    if (cmd & BIT_MEM) { 
+    if (cmd & BIT_CONST) arg = process -> code[(*ip)++];
+    if (cmd & BIT_REG) arg += reg[process -> code[(*ip)++] - 1]; // FORGOT TO DECREMENT ARGUMENT
+    if (cmd & BIT_MEM) {
         if (arg < 0 || arg / 1000 >= (int) RAM_SIZE) {
             printf("Segmentation fault! Wrong RAM index in operation %i!\n", *ip);
             return 1;
@@ -14,65 +14,51 @@ DEF_CMD(PUSH, 1, set_push_args(listing, process, process -> code, &process -> ip
         arg = ram[arg / PRECISION];
     }
 
-    STACK_PUSH(stack, arg, *ip);
+    PUSH_(arg);
 )
 
 DEF_CMD(OUT, 0, 0,
-    int value = 0;
-    STACK_POP(stack, &value, *ip);
-    printf("%g\n", (float) value / PRECISION);
+    OUT_();
 )
 
 DEF_CMD(ADD, 0, 0,
-    int val1 = 0, val2 = 0;
-    STACK_POP(stack, &val1, *ip);
-    STACK_POP(stack, &val2, *ip);
-    STACK_PUSH(stack, val2 + val1, *ip);
+    POP_(val1);
+    POP_(val2);
+    PUSH_(val2 + val1);
 )
 
 DEF_CMD(SUB, 0, 0,
-    int val1 = 0, val2 = 0;
-    STACK_POP(stack, &val1, *ip);
-    STACK_POP(stack, &val2, *ip);
-    STACK_PUSH(stack, val2 - val1, *ip);
+    POP_(val1);
+    POP_(val2);
+    PUSH_(val2 - val1);
 )
 
 DEF_CMD(MUL, 0, 0,
-    int val1 = 0, val2 = 0;
-    STACK_POP(stack, &val1, *ip);
-    STACK_POP(stack, &val2, *ip);
-    STACK_PUSH(stack, (int)((long long)val2 * (long long)val1 / (long long)PRECISION), *ip);
+    POP_(val1);
+    POP_(val2);
+    PUSH_((int)((long long)val2 * (long long)val1 / (long long)PRECISION));
 )
 
 DEF_CMD(DIV, 0, 0,
-    int val1 = 0, val2 = 0;
-    STACK_POP(stack, &val1, *ip);
-    STACK_POP(stack, &val2, *ip);
+    POP_(val1);
+    POP_(val2);
 
     if (val1 == 0) {
         printf("Zero division in operation %i!\n", *ip);
         return 1;
     }
 
-    STACK_PUSH(stack, (int)((float)val2 / (float)val1 * PRECISION), *ip);
+    PUSH_((int)((float)val2 / (float)val1 * PRECISION));
 )
 
 DEF_CMD(JMP, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
-    arg = (process -> code)[(*ip)++];
-
-    if (arg == -1) {
-        printf("Jump to -1 in operation %i!\n", *ip);
-        return 1;
-    }
-
-    *ip = arg;
+    JMP_();
 )
 
 DEF_CMD(DUP, 0, 0,
-    int value = 0;
-    STACK_POP(stack, &value, *ip);
-    STACK_PUSH(stack, value, *ip);
-    STACK_PUSH(stack, value, *ip);
+    POP_(value);
+    PUSH_(value);
+    PUSH_(value);
 )
 
 DEF_CMD(POP, 1, set_push_args(listing, process, process -> code, &process -> ip, &cmd), 
@@ -81,143 +67,67 @@ DEF_CMD(POP, 1, set_push_args(listing, process, process -> code, &process -> ip,
 )
 
 DEF_CMD(JB, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
-    arg = (process -> code)[(*ip)++];
+    POP_(val1);
+    POP_(val2);
 
-    int val1 = 0, val2 = 0;
-    STACK_POP(stack, &val1, *ip);
-    STACK_POP(stack, &val2, *ip);
-
-    if (!(val2 < val1))
-        break;
-
-    if (arg == -1) {
-        printf("Jump to -1 in operation %i!\n", *ip);
-        return 1;
-    }
-
-    *ip = arg;
+    JMP_IF_(val2 < val1);
 )
 
 DEF_CMD(JA, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
-    arg = (process -> code)[(*ip)++];
+    POP_(val1);
+    POP_(val2);
 
-    int val1 = 0, val2 = 0;
-    STACK_POP(stack, &val1, *ip);
-    STACK_POP(stack, &val2, *ip);
-
-    if (!(val2 > val1))
-        break;
-
-    if (arg == -1) {
-        printf("Jump to -1 in operation %i!\n", *ip);
-        return 1;
-    }
-
-    *ip = arg;
+    JMP_IF_(val2 > val1);
 )
 
 DEF_CMD(JE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
-    arg = (process -> code)[(*ip)++];
+    POP_(val1);
+    POP_(val2);
 
-    int val1 = 0, val2 = 0;
-    STACK_POP(stack, &val1, *ip);
-    STACK_POP(stack, &val2, *ip);
-
-    if (!(val2 == val1))
-        break;
-
-    if (arg == -1) {
-        printf("Jump to -1 in operation %i!\n", *ip);
-        return 1;
-    }
-
-    *ip = arg;
+    JMP_IF_(val2 == val1);
 )
 
 DEF_CMD(JNE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
-    arg = (process -> code)[(*ip)++];
+    POP_(val1);
+    POP_(val2);
 
-    int val1 = 0, val2 = 0;
-    STACK_POP(stack, &val1, *ip);
-    STACK_POP(stack, &val2, *ip);
-
-    if (!(val2 != val1))
-        break;
-
-    if (arg == -1) {
-        printf("Jump to -1 in operation %i!\n", *ip);
-        return 1;
-    }
-
-    *ip = arg;
+    JMP_IF_(val2 != val1);
 )
 
 
 DEF_CMD(JAE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
-    arg = (process -> code)[(*ip)++];
+    POP_(val1);
+    POP_(val2);
 
-    int val1 = 0, val2 = 0;
-    STACK_POP(stack, &val1, *ip);
-    STACK_POP(stack, &val2, *ip);
-
-    if (!(val2 >= val1))
-        break;
-
-    if (arg == -1) {
-        printf("Jump to -1 in operation %i!\n", *ip);
-        return 1;
-    }
-
-    *ip = arg;
+    JMP_IF_(val2 >= val1);
 )
 
 
 DEF_CMD(JBE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
-    arg = (process -> code)[(*ip)++];
+    POP_(val1);
+    POP_(val2);
 
-    int val1 = 0, val2 = 0;
-    STACK_POP(stack, &val1, *ip);
-    STACK_POP(stack, &val2, *ip);
-
-    if (!(val2 <= val1))
-        break;
-
-    if (arg == -1) {
-        printf("Jump to -1 in operation %i!\n", *ip);
-        return 1;
-    }
-
-    *ip = arg;
+    JMP_IF_(val2 <= val1);
 )
 
 
 DEF_CMD(CALL, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
-    arg = (process -> code)[(*ip)++];
-
-    if (arg == -1) {
-        printf("Jump to -1 in operation %i!\n", *ip);
-        return -1;
-    }
-
-    STACK_PUSH(call_stack, *ip, *ip);
-
-    *ip = arg;
+    CALL_();
 )
 
 DEF_CMD(RET, 0, 0,
-    STACK_POP(call_stack, &(*ip), *ip);
+    RET_();
 )
 
 DEF_CMD(SQRT, 0, 0,
-    int val = 0;
-    STACK_POP(stack, &val, *ip);
+    POP_(val);
 
     if (val < 0) {
         printf("Negative number under root %i!\n", *ip);
         return 1;
     }
 
-    STACK_PUSH(stack, (int) (sqrt((float)val / PRECISION) * PRECISION), *ip);
+    PUSH_((int) (sqrt((float)val / PRECISION) * PRECISION));
 )
 
 DEF_CMD(IN, 0, 0,
@@ -228,7 +138,7 @@ DEF_CMD(IN, 0, 0,
         return 1;
     }
 
-    STACK_PUSH(stack, (int)(value * PRECISION), process -> ip);
+    PUSH_((int)(value * PRECISION));
 )
 
 DEF_CMD(SHOW, 0, 0,

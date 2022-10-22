@@ -18,36 +18,6 @@ const unsigned int REGISTER_SIZE = 4;
 const unsigned int RAM_SIZE = 1200;
 
 
-/**
- * \brief Shell for stack pop that throws error
- * \param [in]  stack_ptr Pointer to stack
- * \param [out] value_ptr Pointer to value for stack pop
- * \param [in]  ip Current instruction pointer
-*/
-#define STACK_POP(stack_ptr, value_ptr, ip) \
-do { \
-    if (stack_pop(stack_ptr, value_ptr)) { \
-        printf("Empty stack pop in operation %i!\n", ip); \
-        return 1; \
-    } \
-} while(0)
-
-
-/**
- * \brief Shell for stack push that throws error
- * \param [in]  stack_ptr Pointer to stack
- * \param [out] value Value for stack push
- * \param [in]  ip Current instruction pointer
-*/
-#define STACK_PUSH(stack_ptr, value, ip) \
-do { \
-    if (stack_push(stack_ptr, value)) { \
-        printf("Stack push in operation %i!\n", ip); \
-        return 1; \
-    } \
-} while(0)
-
-
 /// Contains information about process to execute
 typedef struct {
     int *code = nullptr; ///< Operation code 
@@ -147,6 +117,7 @@ int main(int argc, char *argv[]) {
         break; \
     }
 
+#include "dsl.hpp"
 
 int execute(Process *process) {
     /// SHORTCUTS ///
@@ -173,7 +144,7 @@ int execute(Process *process) {
     }
 
     printf("[Warning] No hlt at end of the process!\n");
-    return 1;
+    return 0;
 }
 
 
@@ -329,12 +300,19 @@ int execute_pop(Process *process, int *ip, int cmd, int arg) {
             return 1;
         }
 
-        STACK_POP(&process -> value_stack, process -> ram + arg, *ip);
+        if (stack_pop(&process -> value_stack, process -> ram + arg)) { \
+            printf("Empty stack pop in operation %i!\n", *ip); \
+            return 1; \
+        }
     }
 
     else if (cmd & BIT_CONST) {
         int value = 0;
-        STACK_POP(&process -> value_stack, &value, *ip);
+        
+        if (stack_pop(&process -> value_stack, &value)) { \
+            printf("Empty stack pop in operation %i!\n", *ip); \
+            return 1; \
+        }
     }
     
     else if (cmd & BIT_REG) {
@@ -345,7 +323,10 @@ int execute_pop(Process *process, int *ip, int cmd, int arg) {
             return 1;
         }
 
-        STACK_POP(&process -> value_stack, process -> reg + arg - 1, *ip);
+        if (stack_pop(&process -> value_stack, process -> reg + arg - 1)) { \
+            printf("Empty stack pop in operation %i!\n", *ip); \
+            return 1; \
+        }
     }
 
     return 0;
