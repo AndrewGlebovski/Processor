@@ -9,15 +9,15 @@ sub
 dup
 push 1
 
-je ONE:
-call FACTORIAL:
+je ONE
+call FACTORIAL
 
 ONE:
 mul
 ret
 
 START:
-call FACTORIAL:
+call FACTORIAL
 
 out
 hlt

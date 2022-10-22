@@ -58,9 +58,17 @@ typedef struct {
     Stack value_stack = {}; ///< Contains values 
     Stack call_stack = {}; ///< Function backtrace
 
-    int reg[REGISTER_SIZE] = {0}; ///< Process REGISTER
-    int ram[RAM_SIZE] = {0}; ///< Process RAM
+    int *reg; ///< Process REGISTER
+    int *ram; ///< Process RAM
 } Process;
+
+
+/**
+ * \brief Allocates process memory
+ * \param process Process to allocate
+ * \return Non zero value means error
+*/
+int init_process(Process *process);
 
 
 /**
@@ -87,6 +95,14 @@ int execute(Process *process);
 void print_process(Process *process);
 
 
+/**
+ * \brief Free process
+ * \param process Process to free
+ * \return Non zero value means error
+*/
+int free_process(Process *process);
+
+
 int execute_pop(Process *process, int *ip, int cmd, int arg);   ///< Executes pop command
 int show_ram(Process *process);                                 ///< Executes show command
 
@@ -106,6 +122,8 @@ int main(int argc, char *argv[]) {
 
     Process process = {};
 
+    init_process(&process);
+
     if (read_file(input, &process))
         return 1;
 
@@ -114,7 +132,8 @@ int main(int argc, char *argv[]) {
     if (execute(&process))
         print_process(&process);
 
-    free(process.code);
+    if (free_process(&process))
+        return 1;
 
     printf("Processor!");
 
@@ -130,9 +149,6 @@ int main(int argc, char *argv[]) {
 
 
 int execute(Process *process) {
-    stack_constructor(&process -> value_stack, 4);
-    stack_constructor(&process -> call_stack, 4);
-
     /// SHORTCUTS ///
     int *ip = &(process -> ip);
 
@@ -155,8 +171,6 @@ int execute(Process *process) {
             }
         }
     }
-
-    stack_destructor(stack);
 
     printf("[Warning] No hlt at end of the process!\n");
     return 1;
@@ -210,6 +224,71 @@ int read_file(int file, Process *process) {
 }
 
 
+int init_process(Process *process) {
+    if (!process) {
+        printf("Can't work with then null pointer!\n");
+        return 1;
+    }
+
+    if (!process) {
+        printf("Can't work with then null pointer!\n");
+        return 1;
+    }
+
+    process -> reg = (int *) calloc(REGISTER_SIZE, sizeof(int));
+
+    if (!process -> reg){
+        printf("Can't allocate process reg!\n");
+        return 1;
+    }
+
+    process -> ram = (int *) calloc(RAM_SIZE, sizeof(int));
+
+    if (!process -> ram){
+        printf("Can't allocate process ram!\n");
+        return 1;
+    }
+
+    if (stack_constructor(&process -> value_stack, 4)){
+        printf("Unable to construct value stack!\n");
+        return 1;
+    }
+
+    if (stack_constructor(&process -> call_stack, 4)){
+        printf("Unable to construct call stack!\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+
+int free_process(Process *process) {
+    if (!process -> ram || !process -> reg){
+        printf("Process has invalid ram or register pointers!\n");
+        return 1;
+    }
+
+    free(process -> ram);
+    process -> ram = nullptr;
+
+    free(process -> reg);
+    process -> reg = nullptr;
+
+    if (stack_destructor(&process -> value_stack)){
+        printf("Unable to destroy value stack!\n");
+        return 1;
+    }
+
+    if (stack_destructor(&process -> call_stack)){
+        printf("Unable to destroy call stack!\n");
+        return 1;
+    }
+
+    return 0;
+}
+
+
 void print_process(Process *process) {
     printf("Operation count: %i\n", process -> count);
 
@@ -218,14 +297,14 @@ void print_process(Process *process) {
 
     printf("\nRegister:\n");
 
-    for(size_t i = 0; i < sizeof(process -> reg) / sizeof(*process -> reg); i++)
+    for(size_t i = 0; i < REGISTER_SIZE; i++)
         printf("%i ", process -> reg[i]);
-
+    /*
     printf("\nRam:\n");
 
-    for(size_t i = 0; i < sizeof(process -> ram) / sizeof(*process -> ram); i++)
+    for(size_t i = 0; i < RAM_SIZE; i++)
         printf("%i ", process -> ram[i]);
-
+    */
     printf("\nValue stack:\n");
 
     stack_dump(&process -> value_stack, stack_check(&process -> value_stack), stdout);
