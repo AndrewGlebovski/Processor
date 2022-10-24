@@ -2,7 +2,7 @@ DEF_CMD(HLT, 0, 0,
     return 0;
 )
 
-DEF_CMD(PUSH, 1, set_push_args(listing, process, process -> code, &process -> ip, &cmd), 
+DEF_CMD(PUSH, 1, set_push_args(listing, process, &process -> ip, &cmd), 
     if (cmd & BIT_CONST) arg = process -> code[(*ip)++];
     if (cmd & BIT_REG) arg += reg[process -> code[(*ip)++] - 1]; // FORGOT TO DECREMENT ARGUMENT
     if (cmd & BIT_MEM) {
@@ -45,7 +45,7 @@ DEF_CMD(DIV, 0, 0,
     PUSH_((int)((float)val2 / (float)val1 * PRECISION));
 )
 
-DEF_CMD(JMP, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
+DEF_CMD(JMP, 1, set_jmp_args(listing, process, &process -> ip, &cmd),
     JMP_();
 )
 
@@ -55,33 +55,33 @@ DEF_CMD(DUP, 0, 0,
     PUSH_(value);
 )
 
-DEF_CMD(POP, 1, set_push_args(listing, process, process -> code, &process -> ip, &cmd), 
+DEF_CMD(POP, 1, set_push_args(listing, process, &process -> ip, &cmd), 
     if (execute_pop(process, ip, cmd, arg))
         return 1;
 )
 
-DEF_CMD(JB, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
+DEF_CMD(JB, 1, set_jmp_args(listing, process, &process -> ip, &cmd),
     POP_(val1);
     POP_(val2);
 
     JMP_IF_(val2 < val1);
 )
 
-DEF_CMD(JA, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
+DEF_CMD(JA, 1, set_jmp_args(listing, process, &process -> ip, &cmd),
     POP_(val1);
     POP_(val2);
 
     JMP_IF_(val2 > val1);
 )
 
-DEF_CMD(JE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
+DEF_CMD(JE, 1, set_jmp_args(listing, process, &process -> ip, &cmd),
     POP_(val1);
     POP_(val2);
 
     JMP_IF_(val2 == val1);
 )
 
-DEF_CMD(JNE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
+DEF_CMD(JNE, 1, set_jmp_args(listing, process, &process -> ip, &cmd),
     POP_(val1);
     POP_(val2);
 
@@ -89,7 +89,7 @@ DEF_CMD(JNE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, 
 )
 
 
-DEF_CMD(JAE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
+DEF_CMD(JAE, 1, set_jmp_args(listing, process, &process -> ip, &cmd),
     POP_(val1);
     POP_(val2);
 
@@ -97,7 +97,7 @@ DEF_CMD(JAE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, 
 )
 
 
-DEF_CMD(JBE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
+DEF_CMD(JBE, 1, set_jmp_args(listing, process, &process -> ip, &cmd),
     POP_(val1);
     POP_(val2);
 
@@ -105,7 +105,7 @@ DEF_CMD(JBE, 1, set_jmp_args(listing, process, process -> code, &process -> ip, 
 )
 
 
-DEF_CMD(CALL, 1, set_jmp_args(listing, process, process -> code, &process -> ip, &cmd),
+DEF_CMD(CALL, 1, set_jmp_args(listing, process, &process -> ip, &cmd),
     CALL_();
 )
 

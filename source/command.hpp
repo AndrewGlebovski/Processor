@@ -10,9 +10,9 @@ typedef enum {
 
 /// Argument type bit
 typedef enum {
-    BIT_CONST = 0x1000000, ///< Constant bit
-    BIT_REG   = 0x2000000, ///< Register bit
-    BIT_MEM   = 0x4000000, ///< Memory bit
+    BIT_CONST = 0x20, ///< Constant bit
+    BIT_REG   = 0x40, ///< Register bit
+    BIT_MEM   = 0x80, ///< Memory bit
 } ARG_TYPE;
 
 
@@ -26,3 +26,11 @@ const char *SIGN = "AT-AT";
 
 /// Version
 const int VERSION = 1;
+
+
+/// Command type
+typedef unsigned char cmd_t;
+
+
+/// Command argument type
+typedef int arg_t;

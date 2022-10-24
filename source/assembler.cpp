@@ -28,7 +28,7 @@ typedef unsigned long long hash_t;
 
 /// Contains information about label
 typedef struct {
-    int value = 0;
+    arg_t value = 0;
     String name = {};
     hash_t hash = 0;
 } Label;
@@ -36,9 +36,9 @@ typedef struct {
 
 /// Contains information about byte code to execute
 typedef struct {
-    int *code = nullptr;        ///< Operation code 
-    int count = 0;              ///< Operation count
-    int ip = 0;                 ///< Current operation
+    cmd_t *code = nullptr;      ///< Operation code 
+    size_t count = 0;           ///< Operation count
+    cmd_t *ip = nullptr;        ///< Current operation
     Label *labels = nullptr;    ///< Process labels
     int labels_count = 0;       ///< Labels count
 } Process;
@@ -123,7 +123,7 @@ void print_process(Process *process, FILE *stream);
  * \param [in]  cmd Current command string
  * \return Non zero value means error
 */
-int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *cmd);
+int set_push_args(FILE *listing, Process *process, cmd_t **ip, String *cmd);
 
 
 /**
@@ -135,7 +135,7 @@ int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *c
  * \param [in]  cmd Current command string
  * \return Non zero value means error
 */
-int set_jmp_args(FILE *listing, Process *process, int *code, int *ip, String *cmd);
+int set_jmp_args(FILE *listing, Process *process, cmd_t **ip, String *cmd);
 
 
 /**
@@ -221,9 +221,12 @@ int main(int argc, char *argv[]) {
 }
 
 
+#define OFFSET(ip) ip - process -> code
+
+
 #define DEF_CMD(name, arg, action, ...) \
     case (CMD_##name##_HASH): { \
-        process -> code[process -> ip++] = CMD_##name; \
+        *process -> ip++ = CMD_##name; \
         if (arg) { \
             if (action) { \
                 printf("Wrong argument in line %i!\n", i + 1); \
@@ -231,7 +234,7 @@ int main(int argc, char *argv[]) {
             } \
         } \
         else { \
-            fprintf(listing, "%.4i %.8X             %s\n", process -> ip - 1, CMD_##name, text -> lines[i].str); \
+            fprintf(listing, "%04llu %04X %-9s %-9s %s\n", OFFSET(process -> ip - 1), CMD_##name, "", "", cmd.str); \
         } \
         break; \
     }
@@ -240,9 +243,9 @@ int main(int argc, char *argv[]) {
 int translate(Process *process, Text *text, FILE *listing) {
     ASSERT(listing, "No listing file provided!");
 
-    fprintf(listing, "IP   COMMAND  ARG 1 ARG 2 NAME\n");
+    fprintf(listing, "%-4s %-4s %-9s %-9s %s\n", "IP", "CMD", "ARG 1", "ARG 2", "NAME");
 
-    process -> ip = 0;
+    process -> ip = process -> code;
 #ifndef UPDATE_HASH
     for(int i = 0; text -> lines[i].str != nullptr && text -> lines[i].len != -1; i++) {
         String cmd = get_token(text -> lines[i].str, "[+]:", "#");
@@ -261,7 +264,7 @@ int translate(Process *process, Text *text, FILE *listing) {
         }
     }
 #endif
-    process -> count = process -> ip;
+    process -> count = OFFSET(process -> ip);
 
     return 0;
 }
@@ -274,16 +277,18 @@ int write_file(int file, Process *process) {
     ASSERT(file > -1, "Invalid file!");
     ASSERT(process, "Can't work with then null pointer!");
 
-    int bytes = write(file, SIGN, sizeof(SIGN));
+    size_t bytes = write(file, SIGN, sizeof(SIGN));
 
     bytes += write(file, &VERSION, sizeof(int));
     
-    bytes += write(file, &(process -> count), sizeof(int));
+    bytes += write(file, &(process -> count), sizeof(size_t));
 
-    bytes += write(file, process -> code, (unsigned int) process -> count * sizeof(int));
+    bytes += write(file, process -> code, (unsigned int)(process -> count * sizeof(cmd_t)));
 
-    if (bytes != (int) sizeof(SIGN) + (process -> count + 2) * (int) sizeof(int)) {
-        printf("Expected bytes %i, actualy written %i", bytes, (process -> count + 1) * (int) sizeof(int));
+    size_t expected_bytes = sizeof(SIGN) + sizeof(int) + sizeof(size_t) + process -> count * sizeof(cmd_t);
+
+    if (bytes != expected_bytes) {
+        printf("Expected bytes %llu, actualy written %llu", expected_bytes, bytes);
         return 1;
     }
 
@@ -303,9 +308,9 @@ int get_label_value(Process *process, String *label) {
 }
 
 
-int str_to_int(String *str, int *value) {
+int str_to_int(String *str, arg_t *value) {
     char *end = nullptr;
-    *value = (int)(strtod(str -> str, &end) * PRECISION);
+    *value = (arg_t)(strtod(str -> str, &end) * PRECISION);
     return (end == str -> str + str -> len);
 }
 
@@ -341,7 +346,7 @@ int get_register_index(String *name) {
 
 
 int alloc_process(Process *process, Text *text) {
-    process -> code = (int *) calloc(text -> size * 3, sizeof(int));
+    process -> code = (cmd_t *) calloc(text -> size * 3, sizeof(arg_t));
 
     ASSERT(process -> code, "Can't allocate memory for code!");
 
@@ -354,7 +359,7 @@ int alloc_process(Process *process, Text *text) {
 
 
 int realloc_process(Process *process) {
-    process -> code = (int *) realloc(process -> code, process -> count * sizeof(int));
+    process -> code = (cmd_t *) realloc(process -> code, process -> count * sizeof(cmd_t));
 
     ASSERT(process -> code, "Can't reallocate memory for code!");
 
@@ -384,21 +389,23 @@ int free_process(Process *process) {
 
 
 void print_process(Process *process, FILE *stream) {
-    fprintf(stream, "Operation count: %i\n", process -> count);
-
-    for(int i = 0; i < process -> count; i++)
-        fprintf(stream, "%i ", process -> code[i]);
-
-    fprintf(stream, "\nLabels count: %i\n", process -> labels_count);
-
     for(int i = 0; i < process -> labels_count; i++)
         fprintf(stream, "%.*s %i\n", process -> labels[i].name.len, process -> labels[i].name.str, process -> labels[i].value);
 }
 
 
-int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *cmd) {
+#define SET_ARG(ip, value)          \
+do {                                \
+    arg_t *arg_ = (arg_t *)(ip);    \
+    *arg_ = value;                  \
+    (ip) = (cmd_t *)(arg_ + 1);     \
+} while (0)
+
+
+int set_push_args(FILE *listing, Process *process, cmd_t **ip, String *cmd) {
     String arg = get_token(cmd -> str + cmd -> len, "[+]:", "#");
-    int *flag = code + *ip - 1, value = 0;
+    cmd_t *flag = *ip - 1;
+    arg_t value = 0;
 
     ASSERT(arg.str, "No argument after push!");
 
@@ -412,12 +419,13 @@ int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *c
 
     if (str_to_int(&arg, &value) || (value = get_label_value(process, &arg)) != -1) {
         *flag |= BIT_CONST;
-        code[(*ip)++] = value;
+        
+        SET_ARG(*ip, value);
 
         arg = get_token(arg.str + arg.len, "[+]:", "#");
 
         if (!arg.str) {
-            fprintf(listing, "%.4i %.8X %.4i        %s\n", *ip - 2, *flag, code[*ip - 1], cmd -> str);
+            fprintf(listing, "%04llu %04X %-9i %9s %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 1), "", cmd -> str);
 
             return (*flag & BIT_MEM);
         }
@@ -431,15 +439,16 @@ int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *c
 
     if ((value = get_register_index(&arg)) != -1) {
         *flag |= BIT_REG;
-        code[(*ip)++] = value;
+
+        SET_ARG(*ip, value);
 
         arg = get_token(arg.str + arg.len, "[+]:", "#");
 
         if (!arg.str) {
             if (*flag & BIT_CONST)
-                fprintf(listing, "%.4i %.8X %.4i  %.4i  %s\n", *ip - 3, *flag, code[*ip - 2], code[*ip - 1], cmd -> str);
+                fprintf(listing, "%04llu %04X %-9i %-9i %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 2), *((arg_t *)*ip - 1), cmd -> str);
             else
-                fprintf(listing, "%.4i %.8X %.4i        %s\n", *ip - 2, *flag, code[*ip - 1], cmd -> str);
+                fprintf(listing, "%04llu %04X %-9i %9s %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 1), "", cmd -> str);
 
             return (*flag & BIT_MEM);
         }
@@ -447,10 +456,10 @@ int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *c
 
     if (!strnicmp(arg.str, "]", arg.len) && (*flag & BIT_MEM)) {
         if ((*flag & BIT_CONST) && (*flag & BIT_REG)) 
-            fprintf(listing, "%.4i %.8X %.4i  %.4i  %s\n", *ip - 3, *flag, code[*ip - 2], code[*ip - 1], cmd -> str);
+            fprintf(listing, "%04llu %04X %-9i %-9i %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 2), *((arg_t *)*ip - 1), cmd -> str);
         
         else if ((*flag & BIT_CONST) || (*flag & BIT_REG))
-            fprintf(listing, "%.4i %.8X %.4i        %s\n", *ip - 2, *flag, code[*ip - 1], cmd -> str);
+            fprintf(listing, "%04llu %04X %-9i %9s %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 1), "", cmd -> str);
         
         else
             return 1;
@@ -462,19 +471,19 @@ int set_push_args(FILE *listing, Process *process, int *code, int *ip, String *c
 }
 
 
-int set_jmp_args(FILE *listing, Process *process, int *code, int *ip, String *cmd) {
+int set_jmp_args(FILE *listing, Process *process, cmd_t **ip, String *cmd) {
     String arg = get_token(cmd -> str + cmd -> len, "[+]:", "#");
 
     if (!arg.str) return 1;
 
-    int value = 0;
+    arg_t value = 0;
 
     if (str_to_int(&arg, &value))
-        code[(*ip)++] = value;
+        SET_ARG(*ip, value);
     else
-        code[(*ip)++] = get_label_value(process, &arg);
+        SET_ARG(*ip, get_label_value(process, &arg));
 
-    fprintf(listing, "%.4i %.8X %.4i        %s\n", *ip - 2, code[*ip - 2], code[*ip - 1], cmd -> str);
+    fprintf(listing, "%04llu %04X %-9i %9s %s\n", OFFSET(*ip - sizeof(cmd_t) - sizeof(arg_t)), *(*ip - sizeof(cmd_t) - sizeof(arg_t)), *((arg_t *)*ip - 1), "", cmd -> str);
 
     return 0;
 }
@@ -487,7 +496,7 @@ int set_label_value(Process *process, String *cmd) {
         if (!strnicmp(arg.str, ":", arg.len)) {
 
             if (get_label_value(process, cmd) == -1)
-                process -> labels[process -> labels_count++] = {process -> ip, *cmd, gnu_hash(cmd -> str, cmd -> len)};
+                process -> labels[process -> labels_count++] = {(arg_t)(OFFSET(process -> ip - 1)), *cmd, gnu_hash(cmd -> str, cmd -> len)};
 
             return 0;
         }
@@ -496,7 +505,7 @@ int set_label_value(Process *process, String *cmd) {
             arg = get_token(arg.str + arg.len, "[+]:", "#");
 
             if (arg.str) {
-                int value = 0;
+                arg_t value = 0;
 
                 if (str_to_int(&arg, &value)) {
                     if (get_label_value(process, cmd) == -1)
