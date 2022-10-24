@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-#include "stack.hpp"
-#include "parser.hpp"
-#include "cpu_func_list.hpp"
+#include "libs/stack.hpp"
+#include "libs/parser.hpp"
+#include "console/cpu_func_list.hpp"
 #include "command.hpp"
 #include "assert.hpp"
 
@@ -83,7 +83,7 @@ int show_ram(Process *process);                                 ///< Executes sh
 int main(int argc, char *argv[]) {
     int input = -1;
 
-    #include "cpu_cmd_list.hpp"
+    #include "console/cpu_cmd_list.hpp"
 
     if (parse_args(argc, argv, command_list, sizeof(command_list) / sizeof(Command)))
         return 1;

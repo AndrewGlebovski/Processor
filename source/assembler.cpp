@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include "text.hpp"
-#include "parser.hpp"
-#include "asm_func_list.hpp"
+#include "libs/text.hpp"
+#include "libs/parser.hpp"
+#include "console/asm_func_list.hpp"
 #include "command.hpp"
 #include "assert.hpp"
 
@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 #else
     int input = -1, output = -1;
 
-    #include "asm_cmd_list.hpp"
+    #include "console/asm_cmd_list.hpp"
 
     if (parse_args(argc, argv, command_list, sizeof(command_list) / sizeof(Command)))
         return 1;

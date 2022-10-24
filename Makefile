@@ -12,11 +12,11 @@ SRC_DIR=source
 
 
 # Зависимости ассемблера
-ASM_DPD = command cmd assert parser hash asm_cmd_list asm_func_list text
+ASM_DPD = command cmd assert libs/parser hash console/asm_cmd_list console/asm_func_list libs/text
 
 
 # Зависимости процессора
-CPU_DPD = command cmd assert parser stack dsl cpu_cmd_list cpu_func_list
+CPU_DPD = command cmd assert libs/parser libs/stack dsl console/cpu_cmd_list console/cpu_func_list
 
 
 all: processor assembler
