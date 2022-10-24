@@ -3,11 +3,16 @@ DEF_CMD(HLT, 0, 0,
 )
 
 DEF_CMD(PUSH, 1, set_push_args(listing, process, &process -> ip, &cmd), 
-    if (cmd & BIT_CONST) arg = process -> code[(*ip)++];
-    if (cmd & BIT_REG) arg += reg[process -> code[(*ip)++] - 1]; // FORGOT TO DECREMENT ARGUMENT
+    if (cmd & BIT_CONST) {
+        arg = *((arg_t *)(ip));
+        ip += sizeof(arg_t);
+    }
+    if (cmd & BIT_REG) {
+        arg += reg[*((arg_t *)(ip)) - 1]; // FORGOT TO DECREMENT ARGUMENT
+        ip += sizeof(arg_t);
+    }
     if (cmd & BIT_MEM) {
-        ASSERT_IP(arg > -1 && arg / 1000 < (int) RAM_SIZE, "Segmentation fault! Wrong RAM index!", *ip - 1);
-
+        ASSERT_IP(arg > -1 && arg / 1000 < (int) RAM_SIZE, "Segmentation fault! Wrong RAM index!", OFFSET(ip - 1));
         arg = ram[arg / PRECISION];
     }
 
@@ -40,7 +45,7 @@ DEF_CMD(DIV, 0, 0,
     POP_(val1);
     POP_(val2);
 
-    ASSERT_IP(val1, "Zero division!", *ip - 1);
+    ASSERT_IP(val1, "Zero division!", OFFSET(ip - 1));
 
     PUSH_((int)((float)val2 / (float)val1 * PRECISION));
 )
@@ -56,7 +61,7 @@ DEF_CMD(DUP, 0, 0,
 )
 
 DEF_CMD(POP, 1, set_push_args(listing, process, &process -> ip, &cmd), 
-    if (execute_pop(process, ip, cmd, arg))
+    if (execute_pop(process, &ip, cmd, arg))
         return 1;
 )
 
@@ -116,7 +121,7 @@ DEF_CMD(RET, 0, 0,
 DEF_CMD(SQRT, 0, 0,
     POP_(val);
 
-    ASSERT_IP(val >= 0, "Negative number under root!", *ip - 1);
+    ASSERT_IP(val >= 0, "Negative number under root!", OFFSET(ip - 1));
 
     PUSH_((int) (sqrt((float)val / PRECISION) * PRECISION));
 )

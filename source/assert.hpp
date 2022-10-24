@@ -10,7 +10,7 @@
 #define ASSERT_IP(cond, msg, ip)    \
     do {                            \
         if (!(cond)) {              \
-            printf("IP %i\n", ip);  \
+            printf("IP %llu\n", ip);\
             printf("%s\n", msg);    \
             return 1;               \
         }                           \

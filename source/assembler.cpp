@@ -363,7 +363,8 @@ int realloc_process(Process *process) {
 
     ASSERT(process -> code, "Can't reallocate memory for code!");
 
-    process -> labels = (Label *) realloc(process -> labels, process -> labels_count * sizeof(Label));
+    if (process -> labels_count)
+        process -> labels = (Label *) realloc(process -> labels, process -> labels_count * sizeof(Label));
 
     ASSERT(process -> labels, "Can't reallocate memory for labels!");
 
@@ -496,7 +497,7 @@ int set_label_value(Process *process, String *cmd) {
         if (!strnicmp(arg.str, ":", arg.len)) {
 
             if (get_label_value(process, cmd) == -1)
-                process -> labels[process -> labels_count++] = {(arg_t)(OFFSET(process -> ip - 1)), *cmd, gnu_hash(cmd -> str, cmd -> len)};
+                process -> labels[process -> labels_count++] = {(arg_t)(OFFSET(process -> ip)), *cmd, gnu_hash(cmd -> str, cmd -> len)};
 
             return 0;
         }

@@ -21,16 +21,16 @@ const unsigned int RAM_SIZE = 1200;
 
 /// Contains information about process to execute
 typedef struct {
-    int *code = nullptr; ///< Operation code 
-    int count = 0; ///< Operation count
+    cmd_t *code = nullptr; ///< Operation code 
+    size_t count = 0; ///< Operation count
 
-    int ip = 0; ///< Instruction pointer
+    cmd_t *ip = 0; ///< Instruction pointer
 
     Stack value_stack = {}; ///< Contains values 
     Stack call_stack = {}; ///< Function backtrace
 
-    int *reg; ///< Process REGISTER
-    int *ram; ///< Process RAM
+    arg_t *reg; ///< Process REGISTER
+    arg_t *ram; ///< Process RAM
 } Process;
 
 
@@ -74,8 +74,8 @@ void print_process(Process *process);
 int free_process(Process *process);
 
 
-int execute_pop(Process *process, int *ip, int cmd, int arg);   ///< Executes pop command
-int show_ram(Process *process);                                 ///< Executes show command
+int execute_pop(Process *process, cmd_t **ip, cmd_t cmd, arg_t arg);   ///< Executes pop command
+int show_ram(Process *process);                                        ///< Executes show command
 
 
 
@@ -112,6 +112,9 @@ int main(int argc, char *argv[]) {
 }
 
 
+#define OFFSET(ip) ip - process -> code
+
+
 #define DEF_CMD(name, arg, action, ...)     \
     case CMD_##name: {                      \
         __VA_ARGS__                         \
@@ -122,7 +125,7 @@ int main(int argc, char *argv[]) {
 
 int execute(Process *process) {
     /// SHORTCUTS ///
-    int *ip = &(process -> ip);
+    cmd_t *ip = process -> ip;
 
     Stack *stack = &(process -> value_stack);
     Stack *call_stack = &(process -> call_stack);
@@ -131,14 +134,19 @@ int execute(Process *process) {
     int *ram = process -> ram;
 
 
-    while(*ip < process -> count) {
-        int cmd = process -> code[(*ip)++], arg = 0;
+    while((size_t)(OFFSET(ip)) < process -> count) {
+        cmd_t cmd = *ip++;
+        arg_t arg = 0;
 
-        switch(cmd & 0XFFFFFF) {
+        // stack_dump(stack, 0, stdout);
+
+        // printf("%i\n", cmd);
+
+        switch(cmd & 0X1F) {
             #include "cmd.hpp"
 
             default: {
-                printf("Unknown command %i in operation %i!\n", cmd, *ip);
+                printf("Unknown command %ui in operation %llu!\n", cmd, OFFSET(ip - 1));
                 return 1;
             }
         }
@@ -158,7 +166,7 @@ int read_file(int file, Process *process) {
 
     char sig[sizeof(SIGN)] = ""; 
 
-    int bytes = read(file, &sig, sizeof(SIGN));
+    size_t bytes = read(file, &sig, sizeof(SIGN));
 
     ASSERT(!strnicmp(sig, SIGN, sizeof(SIGN)), "Signature of file doesn't match!");
 
@@ -168,16 +176,20 @@ int read_file(int file, Process *process) {
 
     ASSERT(ver == VERSION, "Version of file doesn't match!");
 
-    bytes += read(file, &(process -> count), sizeof(int));
+    bytes += read(file, &(process -> count), sizeof(size_t));
 
-    process -> code = (int *) calloc(process -> count, sizeof(int));
+    process -> code = (cmd_t *) calloc(process -> count, sizeof(cmd_t));
     
-    bytes += read(file, process -> code, (unsigned int) process -> count * sizeof(int));
+    bytes += read(file, process -> code, (unsigned int)(process -> count * sizeof(cmd_t)));
 
-    if (bytes != (int) sizeof(SIGN) + (process -> count + 2) * (int) sizeof(int)) {
-        printf("Expected bytes %i, actualy read %i", bytes, (process -> count + 1) * (int) sizeof(int));
+    size_t expected_bytes = sizeof(SIGN) + sizeof(int) + sizeof(size_t) + process -> count * sizeof(cmd_t);
+
+    if (bytes != expected_bytes) {
+        printf("Expected bytes %llu, actualy read %llu", expected_bytes, bytes);
         return 1;
     }
+
+    process -> ip = process -> code;
 
     return 0;
 }
@@ -186,11 +198,11 @@ int read_file(int file, Process *process) {
 int init_process(Process *process) {
     ASSERT(process, "Can't work with then null pointer!");
 
-    process -> reg = (int *) calloc(REGISTER_SIZE, sizeof(int));
+    process -> reg = (arg_t *) calloc(REGISTER_SIZE, sizeof(arg_t));
 
     ASSERT(process -> reg, "Can't allocate process reg!");
 
-    process -> ram = (int *) calloc(RAM_SIZE, sizeof(int));
+    process -> ram = (arg_t *) calloc(RAM_SIZE, sizeof(arg_t));
 
     ASSERT(process -> ram, "Can't allocate process ram!");
 
@@ -218,11 +230,12 @@ int free_process(Process *process) {
 
 
 void print_process(Process *process) {
+    /*
     printf("Operation count: %i\n", process -> count);
 
     for(int i = 0; i < process -> count; i++)
         printf("%i ", process -> code[i]);
-
+    */
     printf("\nRegister:\n");
 
     for(size_t i = 0; i < REGISTER_SIZE; i++)
@@ -245,30 +258,37 @@ void print_process(Process *process) {
 }
 
 
-int execute_pop(Process *process, int *ip, int cmd, int arg) {
+int execute_pop(Process *process, cmd_t **ip, cmd_t cmd, arg_t arg) {
     if (cmd & BIT_MEM) {
-        if (cmd & BIT_CONST) arg = (process -> code)[(*ip)++];
-        if (cmd & BIT_REG) arg += process -> reg[(process -> code)[(*ip)++] - 1]; // ADD REGISTER INDEX CHECK
+        if (cmd & BIT_CONST) {
+            arg = *((arg_t *)(*ip));
+            *ip += sizeof(arg_t);
+        }
+        if (cmd & BIT_REG) {
+            arg += process -> reg[*((arg_t *)(*ip)) - 1]; // ADD REGISTER INDEX CHECK
+            *ip += sizeof(arg_t);
+        }
 
         arg /= PRECISION;
 
-        ASSERT_IP(arg > -1 && arg < (int) RAM_SIZE, "Segmentation fault! Wrong RAM index!", *ip - 1);
+        ASSERT_IP(arg > -1 && arg < (int) RAM_SIZE, "Segmentation fault! Wrong RAM index!", OFFSET(*ip - 1));
 
-        ASSERT_IP(!stack_pop(&process -> value_stack, process -> ram + arg), "Empty stack pop!", *ip - 1);
+        ASSERT_IP(!stack_pop(&process -> value_stack, process -> ram + arg), "Empty stack pop!", OFFSET(*ip - 1));
     }
 
     else if (cmd & BIT_CONST) {
         int value = 0;
         
-        ASSERT_IP(!stack_pop(&process -> value_stack, &value), "Empty stack pop!", *ip - 1);
+        ASSERT_IP(!stack_pop(&process -> value_stack, &value), "Empty stack pop!", OFFSET(*ip - 1));
     }
     
     else if (cmd & BIT_REG) {
-        arg = (process -> code)[(*ip)++] - 1;
+        arg = *(arg_t *)(*ip) - 1;
+        *ip += sizeof(arg_t);
 
-        ASSERT_IP(arg > -1 && arg < (int) REGISTER_SIZE, "Segmentation fault! Wrong register index!", *ip - 1);
+        ASSERT_IP(arg > -1 && arg < (int) REGISTER_SIZE, "Segmentation fault! Wrong register index!", OFFSET(*ip - 1));
 
-        ASSERT_IP(!stack_pop(&process -> value_stack, process -> reg + arg), "Empty stack pop!", *ip - 1);
+        ASSERT_IP(!stack_pop(&process -> value_stack, process -> reg + arg), "Empty stack pop!", OFFSET(*ip - 1));
     }
 
     return 0;
