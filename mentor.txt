@@ -1,0 +1,184 @@
+in
+
+pop RAX
+
+push 0
+pop RBX
+
+CYCLE:
+
+push RBX
+push 50
+mul
+
+pop RCX
+
+push 0.073
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.032
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.119
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.105
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.108
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.108
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.032
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.116
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.097
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.108
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.107
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.032
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.116
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.111
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.032
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.109
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.121
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.032
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.109
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.101
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.110
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.116
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.111
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.114
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+push 0.033
+pop [RCX]
+push RCX
+push 1
+add
+pop RCX
+
+push RBX
+push 1
+add
+
+pop RBX
+
+push RBX
+push 20
+je PRINT
+
+push RBX
+push RAX
+jne CYCLE
+
+PRINT:
+show
+
+hlt
