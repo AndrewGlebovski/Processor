@@ -142,7 +142,7 @@ int execute(Process *process) {
 
         // printf("%i\n", cmd);
 
-        switch(cmd & 0X1F) {
+        switch(cmd & 0x1F) {
             #include "cmd.hpp"
 
             default: {
@@ -298,15 +298,13 @@ int execute_pop(Process *process, cmd_t **ip, cmd_t cmd, arg_t arg) {
 int show_ram(Process *process) {
     ASSERT(RAM_SIZE >= SCREEN_SIZE, "Ram size is less then screen size!");
 
-    if (process -> ram[0]) putchar('*');
-    else putchar('.');
+    putchar(process -> ram[0]);
 
     for(unsigned int i = 1; i < SCREEN_SIZE; i++) {
         if (i % SCREEN_WIDTH == 0)
             putchar('\n');
 
-        if (process -> ram[i]) putchar('*');
-        else putchar('.');
+        putchar(process -> ram[i]);
     }
 
     putchar('\n');
