@@ -1,9 +1,32 @@
 #include <stdio.h>
 #include <fcntl.h>
-#include <io.h>
+#include <ctype.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+    #include <io.h>
+#elif __linux__
+    #define O_BINARY 0
+
+    int strnicmp(const char *str1, const char *str2, int size);
+
+    int strnicmp(const char *str1, const char *str2, int size) {
+        for (int i = 0; i < size; i++) {
+            if (tolower(str1[i]) != tolower(str2[i]))
+                return str1[i] - str2[i];
+            
+            if (!str1) return 1;
+        }
+
+        return 0;
+    }
+
+    #include <unistd.h>
+#else
+    #error "Your system case is not defined!"
+#endif
+
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include "libs/text.hpp"
 #include "libs/parser.hpp"
 #include "console/asm_func_list.hpp"
@@ -20,7 +43,7 @@ const char *REGISTERS[] = {
 
 
 /// Hash type integer
-typedef unsigned long long hash_t;
+typedef size_t hash_t;
 
 
 #include "hash.hpp"
@@ -71,6 +94,26 @@ int write_file(int file, Process *process);
  * \return Actual value or -1 if label not found
 */
 int get_label_value(Process *process, String *label);
+
+
+/**
+ * \brief Finds token in string
+ * \param [in] origin Search start pointer
+ * \param [in] solo Solo delimeters
+ * \param [in] extra Interpreted as end of line
+ * \warning Token is not always end with \0, so you need to rely on String length field
+ * \return Token pointer and size
+*/
+String get_token(char *origin, const char *solo, const char *extra);
+
+
+/**
+ * \brief Converts string in number
+ * \param [in] str String to converts
+ * \param [in] value Expected integer value
+ * \return Non zero value means unconvertable string
+*/
+int str_to_int(String *str, int *value);
 
 
 /**
@@ -182,7 +225,7 @@ int main(int argc, char *argv[]) {
 
     Text text = {};
 
-    read_file(input, &text);
+    read_text(&text, input);
 
     close(input);
 
@@ -234,7 +277,7 @@ int main(int argc, char *argv[]) {
             } \
         } \
         else { \
-            fprintf(listing, "%04llu %04X %-9s %-9s %s\n", OFFSET(process -> ip - 1), CMD_##name, "", "", cmd.str); \
+            fprintf(listing, "%04zu %04X %-9s %-9s %s\n", OFFSET(process -> ip - 1), CMD_##name, "", "", cmd.str); \
         } \
         break; \
     }
@@ -277,7 +320,7 @@ int write_file(int file, Process *process) {
     ASSERT(file > -1, "Invalid file!");
     ASSERT(process, "Can't work with then null pointer!");
 
-    size_t bytes = write(file, SIGN, sizeof(SIGN));
+    size_t bytes = write(file, SIGN, strlen(SIGN) + 1);
 
     bytes += write(file, &VERSION, sizeof(int));
     
@@ -285,10 +328,10 @@ int write_file(int file, Process *process) {
 
     bytes += write(file, process -> code, (unsigned int)(process -> count * sizeof(cmd_t)));
 
-    size_t expected_bytes = sizeof(SIGN) + sizeof(int) + sizeof(size_t) + process -> count * sizeof(cmd_t);
+    size_t expected_bytes = strlen(SIGN) + 1 + sizeof(int) + sizeof(size_t) + process -> count * sizeof(cmd_t);
 
     if (bytes != expected_bytes) {
-        printf("Expected bytes %llu, actualy written %llu", expected_bytes, bytes);
+        printf("Expected bytes %zu, actualy written %zu", expected_bytes, bytes);
         return 1;
     }
 
@@ -426,7 +469,7 @@ int set_push_args(FILE *listing, Process *process, cmd_t **ip, String *cmd) {
         arg = get_token(arg.str + arg.len, "[+]:", "#");
 
         if (!arg.str) {
-            fprintf(listing, "%04llu %04X %-9i %9s %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 1), "", cmd -> str);
+            fprintf(listing, "%04zu %04X %-9i %9s %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 1), "", cmd -> str);
 
             return (*flag & BIT_MEM);
         }
@@ -447,9 +490,9 @@ int set_push_args(FILE *listing, Process *process, cmd_t **ip, String *cmd) {
 
         if (!arg.str) {
             if (*flag & BIT_CONST)
-                fprintf(listing, "%04llu %04X %-9i %-9i %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 2), *((arg_t *)*ip - 1), cmd -> str);
+                fprintf(listing, "%04zu %04X %-9i %-9i %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 2), *((arg_t *)*ip - 1), cmd -> str);
             else
-                fprintf(listing, "%04llu %04X %-9i %9s %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 1), "", cmd -> str);
+                fprintf(listing, "%04zu %04X %-9i %9s %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 1), "", cmd -> str);
 
             return (*flag & BIT_MEM);
         }
@@ -457,10 +500,10 @@ int set_push_args(FILE *listing, Process *process, cmd_t **ip, String *cmd) {
 
     if (!strnicmp(arg.str, "]", arg.len) && (*flag & BIT_MEM)) {
         if ((*flag & BIT_CONST) && (*flag & BIT_REG)) 
-            fprintf(listing, "%04llu %04X %-9i %-9i %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 2), *((arg_t *)*ip - 1), cmd -> str);
+            fprintf(listing, "%04zu %04X %-9i %-9i %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 2), *((arg_t *)*ip - 1), cmd -> str);
         
         else if ((*flag & BIT_CONST) || (*flag & BIT_REG))
-            fprintf(listing, "%04llu %04X %-9i %9s %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 1), "", cmd -> str);
+            fprintf(listing, "%04zu %04X %-9i %9s %s\n", OFFSET(flag), *flag, *((arg_t *)*ip - 1), "", cmd -> str);
         
         else
             return 1;
@@ -484,7 +527,7 @@ int set_jmp_args(FILE *listing, Process *process, cmd_t **ip, String *cmd) {
     else
         SET_ARG(*ip, get_label_value(process, &arg));
 
-    fprintf(listing, "%04llu %04X %-9i %9s %s\n", OFFSET(*ip - sizeof(cmd_t) - sizeof(arg_t)), *(*ip - sizeof(cmd_t) - sizeof(arg_t)), *((arg_t *)*ip - 1), "", cmd -> str);
+    fprintf(listing, "%04zu %04X %-9i %9s %s\n", OFFSET(*ip - sizeof(cmd_t) - sizeof(arg_t)), *(*ip - sizeof(cmd_t) - sizeof(arg_t)), *((arg_t *)*ip - 1), "", cmd -> str);
 
     return 0;
 }
@@ -523,7 +566,7 @@ int set_label_value(Process *process, String *cmd) {
 
 
 #define DEF_CMD(name, ...) \
-    fprintf(hash_file, "    CMD_"#name"_HASH = %llu,\n", gnu_hash(#name, sizeof(#name) - 1)); 
+    fprintf(hash_file, "    CMD_"#name"_HASH = %zu,\n", gnu_hash(#name, sizeof(#name) - 1)); 
 
 
 void generate_hash_file() {

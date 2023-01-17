@@ -1,5 +1,15 @@
 #include <stdio.h>
-#include <io.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+    #include <io.h>
+#elif __linux__
+    #define O_BINARY 0
+
+    #include <unistd.h>
+#else
+    #error "Your system case is not defined!"
+#endif
+
 #include <fcntl.h>
 #include <stdlib.h>
 #include <math.h>
@@ -106,7 +116,7 @@ int main(int argc, char *argv[]) {
     if (free_process(&process))
         return 1;
 
-    printf("Processor!");
+    printf("Processor!\n");
 
     return 0;
 }
@@ -138,15 +148,11 @@ int execute(Process *process) {
         cmd_t cmd = *ip++;
         arg_t arg = 0;
 
-        // stack_dump(stack, 0, stdout);
-
-        // printf("%i\n", cmd);
-
         switch(cmd & 0x1F) {
             #include "cmd.hpp"
 
             default: {
-                printf("Unknown command %ui in operation %llu!\n", cmd, OFFSET(ip - 1));
+                printf("Unknown command %ui in operation %zu!\n", cmd, OFFSET(ip - 1));
                 return 1;
             }
         }
@@ -164,11 +170,13 @@ int read_file(int file, Process *process) {
     ASSERT(file > -1, "Invalid file!");
     ASSERT(process, "Can't work with then null pointer!");
 
-    char sig[sizeof(SIGN)] = ""; 
+    char *sig = (char *) calloc(strlen(SIGN) + 1, sizeof(char)); 
 
-    size_t bytes = read(file, &sig, sizeof(SIGN));
+    size_t bytes = read(file, sig, strlen(SIGN) + 1);
 
-    ASSERT(!strnicmp(sig, SIGN, sizeof(SIGN)), "Signature of file doesn't match!");
+    ASSERT(!strncmp(sig, SIGN, strlen(SIGN) + 1), "Signature of file doesn't match!");
+
+    free(sig);
 
     int ver = 0;
 
@@ -182,10 +190,10 @@ int read_file(int file, Process *process) {
     
     bytes += read(file, process -> code, (unsigned int)(process -> count * sizeof(cmd_t)));
 
-    size_t expected_bytes = sizeof(SIGN) + sizeof(int) + sizeof(size_t) + process -> count * sizeof(cmd_t);
+    size_t expected_bytes = strlen(SIGN) + 1 + sizeof(int) + sizeof(size_t) + process -> count * sizeof(cmd_t);
 
     if (bytes != expected_bytes) {
-        printf("Expected bytes %llu, actualy read %llu", expected_bytes, bytes);
+        printf("Expected bytes %zu, actualy read %zu\n", expected_bytes, bytes);
         return 1;
     }
 
@@ -248,11 +256,11 @@ void print_process(Process *process) {
     */
     printf("\nValue stack:\n");
 
-    stack_dump(&process -> value_stack, stack_check(&process -> value_stack), stdout);
+    stack_dump(&process -> value_stack, stack_verificator(&process -> value_stack), stdout);
     
     printf("Call stack:\n");
     
-    stack_dump(&process -> call_stack, stack_check(&process -> call_stack), stdout);
+    stack_dump(&process -> call_stack, stack_verificator(&process -> call_stack), stdout);
 
     fflush(stdout);
 }

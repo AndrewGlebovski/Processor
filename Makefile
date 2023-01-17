@@ -19,16 +19,16 @@ ASM_DPD = command cmd assert libs/parser hash console/asm_cmd_list console/asm_f
 CPU_DPD = command cmd assert libs/parser libs/stack dsl console/cpu_cmd_list console/cpu_func_list
 
 
-all: processor assembler
+all: $(BIN_DIR) processor assembler
 
 
 # Завершает сборку ассемблера
-assembler: $(BIN_DIR)/assembler.o
+assembler: $(addprefix $(BIN_DIR)/, $(addsuffix .o, assembler parser text))
 	$(COMPILER) $^ -o asm.exe -Llib -ltext -lparser
 
 
 # Завершает сборку процессора
-processor: $(BIN_DIR)/processor.o
+processor: $(addprefix $(BIN_DIR)/, $(addsuffix .o, processor stack parser))
 	$(COMPILER) $^ -o cpu.exe -Llib -lstack -lparser
 
 
@@ -40,3 +40,12 @@ $(BIN_DIR)/assembler.o: $(SRC_DIR)/assembler.cpp $(addprefix $(SRC_DIR)/, $(adds
 # Предварительная сборка процессора
 $(BIN_DIR)/processor.o: $(SRC_DIR)/processor.cpp $(addprefix $(SRC_DIR)/, $(addsuffix .hpp, $(CPU_DPD)))
 	$(COMPILER) $(FLAGS) -c $< -o $@
+
+
+# Предварительная сборка библиотек
+$(BIN_DIR)/%.o: $(addprefix $(SRC_DIR)/libs/, %.cpp %.hpp)
+	$(COMPILER) $(FLAGS) -c $< -o $@
+
+
+$(BIN_DIR):
+	mkdir $@
