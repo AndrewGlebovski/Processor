@@ -4,7 +4,7 @@ Command command_list[] = {
         0, 
         &set_input_file, 
         &input,
-        "<relative path to a file> Changes input file"
+        "<filepath> Path to binary file for execution"
     },
     {
         "-h", "--help", 

@@ -30,7 +30,11 @@ void set_output_file(char *argv[], void *data) {
 
 
 void show_help(char *argv[], void *data) {
-    for(size_t i = 0; strcmp(((Command *)(data))[i].short_name, "-h") != 0; i++) {
+    size_t i = 0;
+
+    for(; strcmp(((Command *)(data))[i].short_name, "-h") != 0; i++) {
         printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
     }
+
+    printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
 }

@@ -24,12 +24,12 @@ all: $(BIN_DIR) processor assembler
 
 # Завершает сборку ассемблера
 assembler: $(addprefix $(BIN_DIR)/, $(addsuffix .o, assembler parser text))
-	$(COMPILER) $^ -o asm.exe -Llib -ltext -lparser
+	$(COMPILER) $^ -o asm.exe
 
 
 # Завершает сборку процессора
 processor: $(addprefix $(BIN_DIR)/, $(addsuffix .o, processor stack parser))
-	$(COMPILER) $^ -o cpu.exe -Llib -lstack -lparser
+	$(COMPILER) $^ -o cpu.exe
 
 
 # Предварительная сборка ассемблера

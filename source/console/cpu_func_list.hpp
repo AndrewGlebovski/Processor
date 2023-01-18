@@ -11,12 +11,16 @@ void set_input_file(char *argv[], void *data) {
     }
     else {
         printf("No filename after -i, argument ignored!\n");
-	}
+    }
 }
 
 
 void show_help(char *argv[], void *data) {
-	for(size_t i = 0; i < 2; i++) {
-		printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
-	}
+    size_t i = 0;
+
+    for(; strcmp(((Command *)(data))[i].short_name, "-h") != 0; i++) {
+        printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
+    }
+
+    printf("%s %s %s\n", ((Command *)(data))[i].short_name, ((Command *)(data))[i].long_name, ((Command *)(data))[i].desc);
 }

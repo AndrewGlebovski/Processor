@@ -4,14 +4,14 @@ Command command_list[] = {
         0, 
         &set_input_file, 
         &input,
-        "<relative path to a file> Changes input file"
+        "<filepath> Path to assembler source file"
     },
     {
         "-o", "--output", 
         0, 
         &set_output_file, 
         &output,
-        "<relative path to a file> Changes output file"
+        "<filepath> Path to binary output file"
     },
     {
         "-h", "--help", 
